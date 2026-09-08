@@ -1,3 +1,5 @@
+//home_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hemo_guard/app/routes/app_pages.dart';
@@ -101,7 +103,7 @@ class _Footer extends StatelessWidget {
         _Disclaimer(),
         SizedBox(height: 12),
         Text(
-          'Developed by Zulqarnain & Siddique',
+          'Developed by CoE-AI',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 12,
@@ -120,30 +122,28 @@ class _Brand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: const BoxDecoration(
-            color: AppColors.dangerBg,
-            shape: BoxShape.circle,
-          ),
-          child: Image.asset('assets/logo.png', width: 72, height: 72),
+        Image.asset(
+          'assets/logo.png',
+          width: 280,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.medical_services,
+              size: 80,
+              color: AppColors.brand,
+            );
+          },
         ),
-        const SizedBox(height: 20),
-        const Text(
-          'Hemo-Guard',
-          style: TextStyle(
-            fontSize: 34,
-            fontWeight: FontWeight.w800,
-            color: AppColors.brand,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 18),
         const Text(
           'Thalassemia screening from your blood report',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.muted),
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.muted,
+          ),
         ),
       ],
     );
