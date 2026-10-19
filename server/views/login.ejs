@@ -1,0 +1,7 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Hemo Guard | Admin sign in</title><link rel="stylesheet" href="/static/admin.css"></head>
+<body class="login-page"><main class="login-panel"><h1>Superadmin login</h1><p>Hemo Guard account management</p>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+<form action="/admin/login" method="post"><label>Email <input autocomplete="username" type="email" name="email" required maxlength="254"></label>
+<label>Password <input autocomplete="current-password" type="password" name="password" required></label>
+<button type="submit" class="primary">Sign in</button></form></main></body></html>

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hemo_guard/app/routes/app_pages.dart';
 import 'package:hemo_guard/app/theme/app_theme.dart';
+import 'package:hemo_guard/app/services/auth_service.dart';
 
 import '../controllers/home_controller.dart';
+import '../widgets/account_status_card.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -40,6 +42,10 @@ class HomeView extends GetView<HomeController> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        Align(alignment: Alignment.centerRight, child: IconButton(
+          tooltip: 'Log out', onPressed: () => Get.find<AuthService>().logout(),
+          icon: const Icon(Icons.logout))),
+        const AccountStatusCard(),
         const SizedBox(height: 12),
         const _Brand(),
         const SizedBox(height: 40),
@@ -60,6 +66,11 @@ class HomeView extends GetView<HomeController> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Align(alignment: Alignment.centerRight, child: IconButton(
+                tooltip: 'Log out', onPressed: () => Get.find<AuthService>().logout(),
+                icon: const Icon(Icons.logout))),
+              const AccountStatusCard(),
+              const SizedBox(height: 16),
               _actions(),
               const SizedBox(height: 20),
               const _Footer(),

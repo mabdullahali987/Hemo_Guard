@@ -1,47 +1,97 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-
-# Local Python virtual environment (OCR tooling)
-.venv/
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter / Dart generated files
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+.packages
+build/
+coverage/
+*.log
 
-# Symbolication related
-app.*.symbols
+# Editors / operating system
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
 
-# Obfuscation related
-app.*.map.json
+# Gradle / Android local configuration
+.gradle/
+.kotlin/
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-/android/build/
+# Apple generated and private signing material
+ios/Pods/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+*.p12
+*.mobileprovision
+
+# Node.js
+**/node_modules/
+npm-debug.log*
+
+# Environment variables and local private configuration
+**/.env
+**/.env.*
+!**/.env.example
+
+# Private SQLite state: includes WAL / SHM files
+/server/data/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+
+# Local patient reports and exports (do not put real medical data in Git)
+/patient_reports/
+/private_reports/
+/private_exports/
+
+
+# =========================================
+# HEMO GUARD - SENSITIVE FILES
+# =========================================
+
+# Environment variables and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Databases and report data
+server/data/
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.db
+*.db-*
+
+# Private signing keys
+*.jks
+*.keystore
+**/key.properties
+
+# Node.js dependencies
+**/node_modules/
+
+# Flutter generated files
+**/.dart_tool/
+**/build/
+
+# Gradle generated files
+**/.gradle/
+
+# Temporary logs
+*.log
+npm-debug.log*
+
+# Old source archive
+lib.zip
+

@@ -1,0 +1,14 @@
+<%- include('header') %>
+<div class="page-heading"><div><a href="/admin">← Back to accounts</a><h1>Manage trial & subscription</h1>
+<p><strong><%= user.display_name %></strong> (<%= user.email %>)</p></div></div>
+<section class="panel form-panel"><h2>Current plan</h2><p>Type: <strong><%= user.access_plan %></strong> | State: <strong><%= user.status %></strong></p>
+<p>Started: <%= user.plan_started_at || '—' %><br>Expires: <%= user.plan_expires_at || '—' %></p>
+<form action="/admin/users/<%= user.id %>/plan" method="post"><input type="hidden" name="csrf" value="<%= csrf %>">
+<div class="form-grid"><label>Action<select name="action" required>
+<option value="set_trial">Start / restart trial</option><option value="extend_trial">Extend current trial</option><option value="stop_trial">Stop trial now</option>
+<option value="set_subscription">Start / switch to subscription</option><option value="extend_subscription">Extend current subscription</option><option value="stop_subscription">Stop subscription now</option></select></label>
+<label>Duration (used for start / extend)<input type="number" name="duration" value="30" min="1" max="3650"></label>
+<label>Unit<select name="unit"><option value="days">Days</option><option value="months">Months (subscriptions)</option></select></label></div>
+<p class="help">Extension adds time to the current expiry when it is in the future; otherwise it starts from now. Stop takes effect immediately. Switching plans starts a new period from now.</p>
+<div class="form-actions"><button type="submit" class="primary">Apply plan action</button><a href="/admin">Cancel</a></div></form></section>
+<%- include('footer') %>

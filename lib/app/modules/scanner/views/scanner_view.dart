@@ -253,7 +253,7 @@ class _FormView extends GetView<ScannerController> {
 
   Widget _actions() {
     return Obx(() {
-      final busy = controller.isProcessing.value;
+      final busy = controller.isProcessing.value || controller.isAnalyzing.value;
       return Row(
         children: [
           Expanded(

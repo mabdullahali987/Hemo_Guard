@@ -1,0 +1,23 @@
+<%- include('header') %>
+<div class="page-heading"><div><a href="/admin/reports">← Back to report activity</a>
+  <h1><%= account.display_name %></h1>
+  <p><%= account.email %> · <%= account.account_type === 'lab' ? 'Laboratory' : 'Individual' %>
+     <% if (account.is_deleted) { %> · Archived account<% } %></p>
+</div></div>
+<section class="metrics" aria-label="Account report totals">
+  <div class="metric"><span>Reports generated</span><strong><%= total %></strong></div>
+</section>
+<section class="panel">
+  <div class="panel-heading"><h2>Completed report history</h2><span>Dates shown in UTC, newest first</span></div>
+  <div class="table-scroll"><table><thead><tr><th>Completed (UTC)</th><th>Report type</th><th>Report ID</th></tr></thead><tbody>
+    <% for (const r of reports) { %><tr><td><%= new Date(r.completed_at).toLocaleString('en-GB',{timeZone:'UTC'}) %></td>
+    <td><%= r.mode === 'image' ? 'Scanned' : 'Manual' %></td><td><code><%= r.id %></code></td></tr><% } %>
+    <% if (!reports.length) { %><tr><td colspan="3">No completed reports in this range.</td></tr><% } %>
+  </tbody></table></div>
+  <div class="form-actions">
+    <% if (offset > 0) { %><a href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= Math.max(0,offset-limit) %>">← Newer reports</a><% } %>
+    <% if (offset+reports.length < total) { %><a href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= offset+limit %>">Older reports →</a><% } %>
+  </div>
+  <p class="help">This is a usage log. No patient data, blood-test values, report images or prediction outcomes are stored in the audit database.</p>
+</section>
+<%- include('footer') %>

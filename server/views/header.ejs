@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Hemo Guard | Superadmin</title>
+<link rel="stylesheet" href="/static/admin.css"></head>
+<body><header class="topbar"><div class="brand">Hemo Guard <small>Superadmin</small></div>
+<nav><a href="/admin" <%= page === 'dashboard' ? 'aria-current=page' : '' %>>Accounts</a>
+<a href="/admin/reports" <%= page === 'reports' ? 'aria-current=page' : '' %>>Report activity</a>
+<a href="/admin/audit" <%= page === 'audit' ? 'aria-current=page' : '' %>>Audit log</a>
+<form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="<%= csrf %>"><button type="submit" class="linkish">Log out</button></form></nav></header>
+<main class="shell"><% if (notice) { %><div class="notice" role="status"><%= notice %></div><% } %>

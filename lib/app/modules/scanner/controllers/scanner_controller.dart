@@ -10,6 +10,8 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 
 import '../../../data/cbc_parser.dart';
 import '../../../data/thalassemia_predictor.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/api_client.dart';
 
 class ScannerController extends GetxController {
   /// The seven parameters, in display order.
@@ -29,6 +31,7 @@ class ScannerController extends GetxController {
   final RxString rawText = ''.obs;
   final RxBool isText = (Get.arguments?['type'] == 'text').obs;
   final RxBool isProcessing = false.obs;
+  final RxBool isAnalyzing = false.obs;
   final RxBool isDetected = false.obs;
   final RxBool hasScanned = false.obs;
 
@@ -150,7 +153,7 @@ class ScannerController extends GetxController {
           snackPosition: SnackPosition.TOP,
         );
       } else {
-        runPrediction();
+        await runPrediction();
       }
     } catch (e) {
       debugPrint('OCR error: $e');
@@ -375,7 +378,10 @@ class ScannerController extends GetxController {
     return v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
   }
 
-  void runPrediction() {
+  /// Successful analyses are counted once by the server before the result is
+  /// shown. Neither CBC data nor the calculated result is transmitted.
+  Future<void> runPrediction() async {
+    if (isAnalyzing.value) return;
     if (!isModelLoaded) {
       Get.snackbar('Model not ready', 'Please try again in a moment.',
           snackPosition: SnackPosition.TOP);
@@ -389,16 +395,32 @@ class ScannerController extends GetxController {
       );
       return;
     }
+    isAnalyzing.value = true;
+    isDetected.value = false;
+    result.value = null;
     try {
+      final auth = Get.find<AuthService>();
+      final mode = isText.value ? 'text' : 'image';
+      final authorized = await auth.api('POST', '/api/reports/authorize',
+          body: {'mode': mode});
       final sample = <String, double>{
         for (final p in params) _featureKey[p.key]!: values[p.key]!,
       };
-      result.value = _predictor!.predict(sample);
+      // Keep the original predictor and all numerical calculations unchanged.
+      final calculated = _predictor!.predict(sample);
+      await auth.api('POST',
+          '/api/reports/${authorized['authorization_id']}/complete');
+      result.value = calculated;
       isDetected.value = true;
+    } on ApiException catch (e) {
+      Get.snackbar('Access / report audit', e.message,
+          snackPosition: SnackPosition.TOP);
     } catch (e) {
       debugPrint('Prediction failed: $e');
-      Get.snackbar('Error', 'Prediction failed: $e',
+      Get.snackbar('Error', 'Prediction failed. Please try again.',
           snackPosition: SnackPosition.TOP);
+    } finally {
+      isAnalyzing.value = false;
     }
   }
 

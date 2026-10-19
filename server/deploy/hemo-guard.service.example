@@ -1,0 +1,22 @@
+# Copy to /etc/systemd/system/hemo-guard.service and adjust paths/service user.
+[Unit]
+Description=Hemo Guard administration and audit API
+After=network.target
+
+[Service]
+Type=simple
+User=hemo-guard
+Group=hemo-guard
+WorkingDirectory=/opt/hemo-guard/server
+EnvironmentFile=/opt/hemo-guard/server/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hemo-guard
+
+[Install]
+WantedBy=multi-user.target

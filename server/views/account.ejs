@@ -1,0 +1,20 @@
+<%- include('header') %>
+<div class="page-heading"><div><a href="/admin">← Back to accounts</a><h1><%= user ? 'Edit account' : 'Create account' %></h1><p>Personal and laboratory accounts use the same login system.</p></div></div>
+<section class="panel form-panel"><form method="post" action="<%= user ? '/admin/users/' + user.id + '/edit' : '/admin/users' %>">
+<input type="hidden" name="csrf" value="<%= csrf %>">
+<div class="form-grid"><label>Display name / lab name<input name="display_name" required maxlength="120" minlength="2" value="<%= user ? user.display_name : '' %>"></label>
+<label>Email for login<input type="email" name="email" required maxlength="254" autocomplete="off" value="<%= user ? user.email : '' %>"></label>
+<label>Account type<select name="account_type"><option value="person" <%= user?.account_type === 'person' ? 'selected' : '' %>>Individual</option>
+<option value="lab" <%= user?.account_type === 'lab' ? 'selected' : '' %>>Laboratory</option></select></label>
+<label><%= user ? 'New password (leave blank to keep current)' : 'Initial password (minimum 12 characters)' %>
+<input type="password" name="password" minlength="12" maxlength="72" autocomplete="new-password" <%= user ? '' : 'required' %>></label></div>
+<% if (user) { %><label class="check"><input type="checkbox" name="is_active" value="true" <%= user.is_active ? 'checked' : '' %>> Account enabled</label>
+<p class="help">Disabling access or changing the password will revoke all existing sessions.</p>
+<p class="help">Manage trials, renewals, subscriptions, and stop actions on the <a href="/admin/users/<%= user.id %>/plan">plan page</a>.</p>
+<% } else { %><hr><h2>Initial access</h2><div class="form-grid">
+<label>Type<select name="access_plan"><option value="trial">Trial</option><option value="subscription">Subscription</option></select></label>
+<label>Duration<input type="number" name="duration" min="1" max="3650" value="14" required></label>
+<label>Unit<select name="unit"><option value="days">Days</option><option value="months">Months (subscriptions only)</option></select></label></div>
+<p class="help">Trial duration must be set in days. For subscriptions, choose days or calendar months. Give credentials to the user securely.</p><% } %>
+<div class="form-actions"><button type="submit" class="primary"><%= user ? 'Save changes' : 'Create account' %></button><a href="/admin">Cancel</a></div></form></section>
+<%- include('footer') %>

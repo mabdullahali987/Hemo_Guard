@@ -1,0 +1,30 @@
+<%- include('header') %>
+<div class="page-heading"><div>
+  <h1>Report activity by account</h1>
+  <p>See exactly which individual or laboratory login generated reports. Counts include completed analyses only, including those from archived accounts.</p>
+</div><div class="actions"><a href="/admin/reports">Refresh counts</a><a href="/admin/audit">View audit events →</a></div></div>
+<section class="metrics" aria-label="Report totals">
+  <div class="metric"><span>Reports generated</span><strong><%= summary.reports_total %></strong></div>
+  <div class="metric"><span>Scanned reports</span><strong><%= summary.reports_scanned %></strong></div>
+  <div class="metric"><span>Manual reports</span><strong><%= summary.reports_manual %></strong></div>
+  <div class="metric"><span>Accounts shown</span><strong><%= accounts.length %></strong></div>
+</section>
+<section class="panel">
+  <div class="panel-heading"><h2>Individual & laboratory usage</h2><span>Sorted by number of reports (highest first)</span></div>
+  <div class="table-scroll"><table><thead><tr><th>Account / email</th><th>Type</th><th>Reports</th><th>Scanned</th><th>Manual</th><th>Latest report (UTC)</th><th>History</th></tr></thead><tbody>
+  <% for (const a of accounts) { %>
+    <tr>
+      <td><strong><%= a.display_name %></strong><small><%= a.email %></small>
+        <% if (a.is_deleted) { %><small class="state-note">Archived / deleted account</small><% } %></td>
+      <td><span class="pill"><%= a.account_type === 'lab' ? 'Laboratory' : 'Individual' %></span></td>
+      <td><strong><%= a.reports_count %></strong></td>
+      <td><%= a.scans_count %></td><td><%= a.manual_count %></td>
+      <td><%= a.last_report_at ? new Date(a.last_report_at).toLocaleString('en-GB',{timeZone:'UTC'}) : 'No reports yet' %></td>
+      <td><a href="/admin/reports/<%= encodeURIComponent(a.id) %>">View history →</a></td>
+    </tr>
+  <% } %>
+  <% if (!accounts.length) { %><tr><td colspan="7">No users or labs yet. Report activity will appear here once accounts are created.</td></tr><% } %>
+  </tbody></table></div>
+  <p class="help">A laboratory account represents one shared laboratory login; this dashboard does not distinguish staff members inside a lab. No patient names, CBC values or scanned images are stored here.</p>
+</section>
+<%- include('footer') %>

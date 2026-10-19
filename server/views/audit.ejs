@@ -1,0 +1,21 @@
+<%- include('header') %>
+<div class="page-heading"><div><h1>Audit log</h1><p>Account changes, login events and completed reports. No CBC values or patient images are uploaded to this audit system.</p></div></div>
+<section class="panel"><div class="panel-heading"><h2>Who generated how many reports?</h2><a href="/admin/reports">View report totals by user / laboratory →</a></div><p>See individual and lab counts, scanned/manual breakdowns, and report dates without patient data.</p>
+<div class="table-scroll"><table><thead><tr><th>User or laboratory</th><th>Type</th><th>Reports</th><th>Scanned</th><th>Manual</th><th>History</th></tr></thead><tbody>
+<% for (const a of accounts.slice(0,10)) { %><tr>
+<td><strong><%= a.display_name %></strong><small><%= a.email %></small><% if (a.is_deleted) { %><small>Archived</small><% } %></td>
+<td><%= a.account_type === 'lab' ? 'Laboratory' : 'Individual' %></td>
+<td><strong><%= a.reports_count %></strong></td><td><%= a.scans_count %></td><td><%= a.manual_count %></td>
+<td><a href="/admin/reports/<%= encodeURIComponent(a.id) %>">View history →</a></td></tr><% } %>
+<% if (!accounts.length) { %><tr><td colspan="6">No report activity yet.</td></tr><% } %>
+</tbody></table></div>
+<% if (accounts.length > 10) { %><p class="help">Showing 10 of <%= accounts.length %> accounts. <a href="/admin/reports">See all accounts</a>.</p><% } %>
+</section>
+<section class="panel"><div class="table-scroll"><table><thead><tr><th>Date (UTC)</th><th>Event</th><th>Actor</th><th>Account</th><th>Details</th></tr></thead><tbody>
+<% for (const e of events) { %><tr><td><%= e.created_at %></td><td><strong><%= e.action %></strong></td>
+<td><%= e.actor_email || 'System' %></td><td><%= e.subject_name || '—' %><small><%= e.subject_email || '' %></small></td>
+<td><code><%= JSON.stringify(e.details) %></code></td></tr><% } %>
+<% if (!events.length) { %><tr><td colspan="5">No audit events found.</td></tr><% } %></tbody></table></div></section>
+<div class="form-actions"><% if (offset > 0) { %><a href="/admin/audit?offset=<%= Math.max(0,offset-200) %>">Newer events</a><% } %>
+<% if (events.length === 200) { %><a href="/admin/audit?offset=<%= offset+200 %>">Older events →</a><% } %></div>
+<%- include('footer') %>
