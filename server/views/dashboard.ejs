@@ -1,15 +1,89 @@
 <%- include('header') %>
-<div class="page-heading"><div><h1>Accounts & subscriptions</h1><p>Manage individual users and laboratories. All dates are shown in UTC.</p></div><a class="primary action" href="/admin/users/new">Create account</a></div>
-<section class="metrics" aria-label="Summary">
-<% const cards = [['Users',summary.total_users],['Labs',summary.labs],['Individuals',summary.persons],['All trial accounts',summary.trial_accounts],['Active trials',summary.active_trials],['All subscriptions',summary.subscription_accounts],['Active subscriptions',summary.active_subscriptions],['Expired',summary.expired],['Stopped',summary.stopped],['Disabled',summary.disabled],['Reports generated',summary.reports_total],['Scanned reports',summary.reports_scanned],['Manual reports',summary.reports_manual]]; %>
-<% for (const [label,count] of cards) { %><div class="metric"><span><%= label %></span><strong><%= count %></strong></div><% } %>
-</section><section class="panel"><div class="panel-heading"><h2>All accounts</h2><a href="/admin/reports">View reports by user / lab →</a><span><%= users.length %> active records</span></div>
-<div class="table-scroll"><table><thead><tr><th>Name / email</th><th>Type</th><th>Access</th><th>Expires (UTC)</th><th>Reports</th><th>Actions</th></tr></thead><tbody>
-<% for (const u of users) { %><tr><td><b><%= u.display_name %></b><small><%= u.email %></small></td><td><%= u.account_type %></td>
-<td><span class="pill"><%= u.access_plan %> · <%= u.status %></span></td><td><%= u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleString('en-GB',{timeZone:'UTC'}) : '—' %></td>
-<td><strong><%= u.reports_count %></strong><small><%= u.scans_count %> scan / <%= u.manual_count %> manual</small></td>
-<td><div class="actions"><a href="/admin/reports/<%= u.id %>">Reports</a><a href="/admin/users/<%= u.id %>/edit">Edit</a><a href="/admin/users/<%= u.id %>/plan">Plan</a>
-<a class="danger-link" href="/admin/users/<%= u.id %>/delete">Delete</a></div></td></tr><% } %>
-<% if (!users.length) { %><tr><td colspan="6">No users yet. Create an account to start.</td></tr><% } %>
-</tbody></table></div></section>
-<%- include('footer') %>
+    <div class="page-heading">
+        <div>
+            <h1>Accounts & subscriptions</h1>
+            <p>Manage individual users and laboratories. All dates are shown in UTC.</p>
+        </div><a class="primary action" href="/admin/users/new">Create account</a>
+    </div>
+    <section class="metrics" aria-label="Summary">
+        <% const cards=[
+        ['Users',summary.total_users],
+        ['Labs',summary.labs],
+        ['Individuals',summary.persons],
+        ['All trial accounts',summary.trial_accounts],
+        ['Active trials',summary.active_trials],
+        ['All subscriptions',summary.subscription_accounts],
+        ['Active subscriptions',summary.active_subscriptions],
+        ['Expired',summary.expired],['Stopped',summary.stopped],
+        ['Disabled',summary.disabled],
+        ['Reports generated',summary.reports_total],
+        ['Scanned reports',summary.reports_scanned],
+        ['Manual reports',summary.reports_manual]]; %>
+            <% for (const [label,count] of cards) { %>
+                <div class="metric"><span>
+                        <%= label %>
+                    </span><strong>
+                        <%= count %>
+                    </strong></div>
+                <% } %>
+    </section>
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>All accounts</h2><a href="/admin/reports">View reports by user / lab →</a><span>
+                <%= users.length %> active records
+            </span>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name / email</th>
+                        <th>Type</th>
+                        <th>Access</th>
+                        <th>Expires (UTC)</th>
+                        <th>Reports</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for (const u of users) { %>
+                        <tr>
+                            <td><b>
+                                    <%= u.display_name %>
+                                </b><small>
+                                    <%= u.email %>
+                                </small></td>
+                            <td>
+                                <%= u.account_type %>
+                            </td>
+                            <td><span class="pill">
+                                    <%= u.access_plan %> · <%= u.status %>
+                                </span></td>
+                            <td>
+                                <%= u.plan_expires_at ? new
+                                    Date(u.plan_expires_at).toLocaleString('en-GB',{timeZone:'UTC'}) : '—' %>
+                            </td>
+                            <td><strong>
+                                    <%= u.reports_count %>
+                                </strong><small>
+                                    <%= u.scans_count %> scan / <%= u.manual_count %> manual
+                                </small></td>
+                            <td>
+                                <div class="actions"><a href="/admin/reports/<%= u.id %>">Reports</a><a
+                                        href="/admin/users/<%= u.id %>/edit">Edit</a><a
+                                        href="/admin/users/<%= u.id %>/plan">Plan</a>
+                                    <a class="danger-link" href="/admin/users/<%= u.id %>/delete">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <% } %>
+                            <% if (!users.length) { %>
+                                <tr>
+                                    <td colspan="6">No users yet. Create an account to start.</td>
+                                </tr>
+                                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <%- include('footer') %>

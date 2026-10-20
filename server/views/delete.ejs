@@ -1,8 +1,17 @@
 <%- include('header') %>
-<div class="page-heading"><h1>Delete account?</h1></div>
-<section class="panel form-panel"><p>Delete <strong><%= user.display_name %></strong> (<%= user.email %>)?</p>
-<p>This immediately revokes access and signs the user out. Past report counts and audit events remain for accountability. This action cannot be undone from the dashboard.</p>
-<form method="post" action="/admin/users/<%= user.id %>/delete">
-<input type="hidden" name="csrf" value="<%= csrf %>">
-<div class="form-actions"><button type="submit" class="primary">Confirm deletion</button><a href="/admin">Cancel</a></div></form></section>
-<%- include('footer') %>
+    <div class="page-heading">
+        <h1>Delete account?</h1>
+    </div>
+    <section class="panel form-panel">
+        <p>Delete <strong>
+                <%= user.display_name %>
+            </strong> (<%= user.email %>)?</p>
+        <p>This immediately revokes access and signs the user out. Past report counts and audit events remain for
+            accountability. This action cannot be undone from the dashboard.</p>
+        <form method="post" action="/admin/users/<%= user.id %>/delete">
+            <input type="hidden" name="csrf" value="<%= csrf %>">
+            <div class="form-actions"><button type="submit" class="primary">Confirm deletion</button><a
+                    href="/admin">Cancel</a></div>
+        </form>
+    </section>
+    <%- include('footer') %>
