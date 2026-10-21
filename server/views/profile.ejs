@@ -26,7 +26,6 @@
         <div class="profile-avatar-preview" data-avatar-preview data-has-image="<%= profile.profile_image_data ? 'true' : 'false' %>">
           <img src="<%= profile.profile_image_data || '' %>" alt="Profile picture preview" <%= profile.profile_image_data ? '' : 'hidden' %> data-avatar-image>
           <span data-avatar-fallback <%= profile.profile_image_data ? 'hidden' : '' %>><%= String(profile.display_name || 'A').trim().charAt(0).toUpperCase() %></span>
-          <span class="avatar-edit-badge" aria-hidden="true">✦</span>
         </div>
         <div class="profile-avatar-actions">
           <strong>Profile picture</strong>
@@ -37,7 +36,7 @@
             <% if (profile.profile_image_data) { %>
               <label class="remove-picture"><input type="checkbox" name="remove_picture" value="1" data-remove-picture> Remove current picture</label>
             <% } %>
-          </div>
+          </di  v>
           <small class="profile-image-status" data-profile-image-status aria-live="polite"></small>
         </div>
       </div>
