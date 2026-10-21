@@ -1,63 +1,79 @@
 <%- include('header') %>
-  <div class="page-heading">
-    <div><a href="/admin/reports">← Back to report activity</a>
-      <h1>
-        <%= account.display_name %>
-      </h1>
-      <p>
-        <%= account.email %> · <%= account.account_type==='lab' ? 'Laboratory' : 'Individual' %>
-            <% if (account.is_deleted) { %> · Archived account<% } %>
-      </p>
+    <div class="page-heading">
+        <div><a href="/admin/reports" class="breadcrumb">← &nbsp; Back to report activity</a>
+            <p class="eyebrow">ACCOUNT ACTIVITY</p>
+            <h1>
+                <%= account.display_name %>
+            </h1>
+            <p>
+                <%= account.email %> · <%= account.account_type==='lab' ? 'Laboratory' : 'Individual' %>
+                        <% if (account.is_deleted) { %> · Archived account<% } %>
+            </p>
+        </div><span class="heading-decoration" aria-hidden="true">▥</span>
     </div>
-  </div>
-  <section class="metrics" aria-label="Account report totals">
-    <div class="metric"><span>Reports generated</span><strong>
-        <%= total %>
-      </strong></div>
-  </section>
-  <section class="panel">
-    <div class="panel-heading">
-      <h2>Completed report history</h2><span>Dates shown in UTC, newest first</span>
-    </div>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Completed (UTC)</th>
-            <th>Report type</th>
-            <th>Report ID</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (const r of reports) { %>
-            <tr>
-              <td>
-                <%= new Date(r.completed_at).toLocaleString('en-GB',{timeZone:'UTC'}) %>
-              </td>
-              <td>
-                <%= r.mode==='image' ? 'Scanned' : 'Manual' %>
-              </td>
-              <td><code><%= r.id %></code></td>
-            </tr>
-            <% } %>
-              <% if (!reports.length) { %>
-                <tr>
-                  <td colspan="3">No completed reports in this range.</td>
-                </tr>
+    <section class="metrics metrics-focus" aria-label="Account report totals">
+        <article class="metric metric-violet">
+            <div class="metric-header"><span class="metric-icon" aria-hidden="true">▥</span><span
+                    class="metric-gleam">↗</span></div><span class="metric-label">Total completed reports</span><strong>
+                <%= total %>
+            </strong>
+        </article>
+    </section>
+    <section class="panel table-panel glass">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">REPORT HISTORY</p>
+                <h2>Completed analyses</h2>
+                <p>Newest first. Times shown in UTC.</p>
+            </div><span class="count-chip">
+                <%= reports.length %> on this page
+            </span>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Completed (UTC)</th>
+                        <th>Report type</th>
+                        <th>Report ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for (const r of reports) { %>
+                        <tr>
+                            <td>
+                                <%= new Date(r.completed_at).toLocaleString('en-GB',{timeZone:'UTC'}) %>
+                            </td>
+                            <td><span class="pill pill-<%= r.mode==='image' ? 'active' : 'muted' %>"><span
+                                        class="pill-dot"></span>
+                                    <%= r.mode==='image' ? 'Scanned' : 'Manual' %>
+                                </span></td>
+                            <td><code><%= r.id %></code></td>
+                        </tr>
+                        <% } %>
+                            <% if (!reports.length) { %>
+                                <tr class="empty-row">
+                                    <td colspan="3">
+                                        <div class="empty-state"><span>▥</span><strong>No reports in this range</strong>
+                                            <p>Try a different history page or check back later.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% } %>
+                </tbody>
+            </table>
+        </div>
+        <div class="form-actions pagination">
+            <% if (offset>0) { %><a class="button secondary small"
+                    href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= Math.max(0,offset-limit) %>">←
+                    Newer reports</a>
                 <% } %>
-        </tbody>
-      </table>
-    </div>
-    <div class="form-actions">
-      <% if (offset> 0) { %><a
-          href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= Math.max(0,offset-limit) %>">← Newer
-          reports</a>
-        <% } %>
-          <% if (offset+reports.length < total) { %><a
-              href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= offset+limit %>">Older reports →</a>
-            <% } %>
-    </div>
-    <p class="help">This is a usage log. No patient data, blood-test values, report images or prediction outcomes are
-      stored in the audit database.</p>
-  </section>
-  <%- include('footer') %>
+                    <% if (offset+reports.length<total) { %><a class="button secondary small"
+                            href="/admin/reports/<%= encodeURIComponent(account.id) %>?offset=<%= offset+limit %>">Older
+                            reports →</a>
+                        <% } %>
+        </div>
+        <p class="table-footnote">This is an account usage log. No patient records, blood-test values, report images, or
+            prediction results are stored here.</p>
+    </section>
+    <%- include('footer') %>

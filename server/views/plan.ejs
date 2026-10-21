@@ -1,42 +1,10 @@
 <%- include('header') %>
-    <div class="page-heading">
-        <div><a href="/admin">← Back to accounts</a>
-            <h1>Manage trial & subscription</h1>
-            <p><strong>
-                    <%= user.display_name %>
-                </strong> (<%= user.email %>)</p>
-        </div>
-    </div>
-    <section class="panel form-panel">
-        <h2>Current plan</h2>
-        <p>Type: <strong>
-                <%= user.access_plan %>
-            </strong> | State: <strong>
-                <%= user.status %>
-            </strong></p>
-        <p>Started: <%= user.plan_started_at || '—' %><br>Expires: <%= user.plan_expires_at || '—' %>
-        </p>
-        <form action="/admin/users/<%= user.id %>/plan" method="post"><input type="hidden" name="csrf"
-                value="<%= csrf %>">
-            <div class="form-grid"><label>Action<select name="action" required>
-                        <option value="set_trial">Start / restart trial</option>
-                        <option value="extend_trial">Extend current trial</option>
-                        <option value="stop_trial">Stop trial now</option>
-                        <option value="set_subscription">Start / switch to subscription</option>
-                        <option value="extend_subscription">Extend current subscription</option>
-                        <option value="stop_subscription">Stop subscription now</option>
-                    </select></label>
-                <label>Duration (used for start / extend)<input type="number" name="duration" value="30" min="1"
-                        max="3650"></label>
-                <label>Unit<select name="unit">
-                        <option value="days">Days</option>
-                        <option value="months">Months (subscriptions)</option>
-                    </select></label>
-            </div>
-            <p class="help">Extension adds time to the current expiry when it is in the future; otherwise it starts from
-                now. Stop takes effect immediately. Switching plans starts a new period from now.</p>
-            <div class="form-actions"><button type="submit" class="primary">Apply plan action</button><a
-                    href="/admin">Cancel</a></div>
-        </form>
-    </section>
-    <%- include('footer') %>
+<div class="page-heading"><div><a class="breadcrumb" href="/admin">← &nbsp; Back to accounts</a><p class="eyebrow">ACCESS MANAGEMENT</p><h1>Manage plan</h1><p><strong><%= user.display_name %></strong> · <%= user.email %></p></div><span class="heading-decoration" aria-hidden="true">◷</span></div>
+<div class="form-layout">
+  <section class="panel form-panel glass"><div class="form-intro"><span class="section-icon">✦</span><div><h2>Current access</h2><p>Review the existing plan before applying a change.</p></div></div><div class="plan-summary"><div><span>PLAN TYPE</span><strong><%= user.access_plan || 'Not set' %></strong></div><div><span>ACCESS STATUS</span><strong><span class="pill pill-<%= user.status==='active' ? 'active' : user.status==='expired' ? 'expired' : 'muted' %>"><span class="pill-dot"></span><%= user.status %></span></strong></div><div><span>STARTED</span><strong class="date-text"><%= user.plan_started_at ? new Date(user.plan_started_at).toLocaleDateString('en-GB',{timeZone:'UTC'}) : '—' %></strong></div><div><span>EXPIRES</span><strong class="date-text"><%= user.plan_expires_at ? new Date(user.plan_expires_at).toLocaleDateString('en-GB',{timeZone:'UTC'}) : '—' %></strong></div></div>
+    <div class="soft-divider"></div><div class="form-intro minor"><span class="section-icon">◷</span><div><h2>Apply a plan change</h2><p>The selected change takes effect as soon as you submit it.</p></div></div>
+    <form action="/admin/users/<%= encodeURIComponent(user.id) %>/plan" method="post" data-enhanced-form><input type="hidden" name="csrf" value="<%= csrf %>"><div class="form-grid"><label>Action<select name="action" required data-plan-action><option value="set_trial">Start / restart trial</option><option value="extend_trial">Extend current trial</option><option value="stop_trial">Stop trial now</option><option value="set_subscription">Start / switch to subscription</option><option value="extend_subscription">Extend current subscription</option><option value="stop_subscription">Stop subscription now</option></select></label><label>Duration<input type="number" name="duration" value="30" min="1" max="3650" data-plan-duration></label><label>Unit<select name="unit" data-plan-unit><option value="days">Days</option><option value="months">Months (subscriptions only)</option></select></label></div><p class="help">Extensions add time to a future expiry, or start from today if access has expired. Stopping access is immediate.</p><div class="form-actions"><button class="button primary" type="submit"><span class="button-text">Apply change</span><span aria-hidden="true">→</span><span class="button-spinner" aria-hidden="true"></span></button><a class="button secondary" href="/admin">Cancel</a></div></form>
+  </section>
+  <aside class="aside-panel glass"><div class="aside-illustration" aria-hidden="true">◷</div><p class="eyebrow">PLAN BEHAVIOR</p><h3>Clear before <span>confirming.</span></h3><p>Plan controls are designed to make the outcome predictable.</p><div class="aside-list"><span>✓ Extend keeps existing future time</span><span>✓ Switch starts a new plan from now</span><span>✓ Stop blocks access immediately</span><span>✓ Report history is always preserved</span></div></aside>
+</div>
+<%- include('footer') %>

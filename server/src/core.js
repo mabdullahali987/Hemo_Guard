@@ -10,7 +10,7 @@ const fail = (message, status = 400) => { const e = new Error(message); e.status
 const userById = (id) => db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL').get(id);
 const publicUser = (user) => {
   if (!user) return null;
-  const { password_hash, ...rest } = user;
+  const { password_hash, profile_image_data, ...rest } = user;
   const status = accessState(user);
   const expiry = user.plan_expires_at ? Date.parse(user.plan_expires_at) : NaN;
   // Round upward: '1 day remaining' includes the final 24 hours.
@@ -33,6 +33,69 @@ const ensurePassword = (value) => {
   if (typeof value !== 'string' || value.length < 12 || Buffer.byteLength(value, 'utf8') > 72) fail('Password must be 12 characters or more, up to 72 UTF-8 bytes');
   return value;
 };
+
+const ensureProfileImage = (value) => {
+  if (value == null || value === '') return null;
+  const data = String(value);
+  const match = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(data);
+  if (!match) fail('Profile picture must be a PNG, JPEG, or WebP image');
+  let bytes;
+  try { bytes = Buffer.from(match[2], 'base64'); } catch (_) { fail('Profile picture could not be read'); }
+  if (!bytes.length || bytes.length > 300 * 1024) fail('Profile picture is too large after processing');
+  const type = match[1];
+  const isPng = bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+  const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isWebp = bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  if ((type === 'png' && !isPng) || (type === 'jpeg' && !isJpeg) || (type === 'webp' && !isWebp)) fail('Profile picture format does not match its file type');
+  return data;
+};
+const adminProfile = (user) => {
+  if (!user || user.account_type !== 'superadmin') fail('Superadmin account not found', 404);
+  return {
+    id: user.id,
+    display_name: user.display_name,
+    email: user.email,
+    profile_image_data: user.profile_image_data || null,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+};
+function updateAdminProfile(id, input, actorId = id) {
+  const user = userById(id);
+  if (!user || user.account_type !== 'superadmin') fail('Superadmin account not found', 404);
+  const name = ensureName(input.display_name);
+  const email = ensureEmail(input.email);
+  const removePicture = input.remove_picture === true || input.remove_picture === 'true' || input.remove_picture === 'on' || input.remove_picture === '1';
+  let picture = user.profile_image_data || null;
+  if (removePicture) picture = null;
+  else if (input.profile_image_data) picture = ensureProfileImage(input.profile_image_data);
+  const emailChanged = email !== String(user.email).toLowerCase();
+  const nameChanged = name !== user.display_name;
+  const pictureChanged = picture !== (user.profile_image_data || null);
+  try {
+    db.transaction(() => {
+      db.prepare('UPDATE users SET display_name=?,email=?,profile_image_data=?,updated_at=? WHERE id=?')
+        .run(name, email, picture, now(), id);
+      audit(actorId, id, 'admin.profile_updated', { email_changed: emailChanged, name_changed: nameChanged, profile_picture_changed: pictureChanged });
+    })();
+  } catch (e) { if (e.code?.startsWith('SQLITE_CONSTRAINT')) fail('That email is already registered', 409); throw e; }
+  return adminProfile(userById(id));
+}
+function changeAdminPassword(id, input, actorId = id) {
+  const user = userById(id);
+  if (!user || user.account_type !== 'superadmin') fail('Superadmin account not found', 404);
+  const current = String(input.current_password || '');
+  if (!bcrypt.compareSync(current, user.password_hash)) fail('Current password is incorrect', 403);
+  const next = ensurePassword(input.new_password);
+  if (next !== String(input.confirm_password || '')) fail('New password and confirmation do not match');
+  if (bcrypt.compareSync(next, user.password_hash)) fail('Choose a new password that is different from your current password');
+  const passwordHash = bcrypt.hashSync(next, 12);
+  db.transaction(() => {
+    db.prepare('UPDATE users SET password_hash=?,updated_at=? WHERE id=?').run(passwordHash, now(), id);
+    audit(actorId, id, 'admin.password_changed');
+    revokeUserSessions(id);
+  })();
+}
 const ensureType = (value) => {
   if (!['person', 'lab'].includes(value)) fail('Account type must be person or lab');
   return value;
@@ -247,4 +310,5 @@ function completeReport(userId, id) {
   return { counted: true, already_recorded: false };
 }
 module.exports = { db, now, fail, userById, publicUser, audit, createUser, editUser, deleteUser, changePlan,
-  createSession, findSession, revokeSession, revokeUserSessions, login, listUsers, summary, listAudit, reportUsage, reportHistory, authorizeReport, completeReport, ensurePassword };
+  createSession, findSession, revokeSession, revokeUserSessions, login, listUsers, summary, listAudit, reportUsage, reportHistory, authorizeReport, completeReport, ensurePassword,
+  adminProfile, updateAdminProfile, changeAdminPassword, ensureProfileImage };

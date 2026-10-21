@@ -1,17 +1,4 @@
 <%- include('header') %>
-    <div class="page-heading">
-        <h1>Delete account?</h1>
-    </div>
-    <section class="panel form-panel">
-        <p>Delete <strong>
-                <%= user.display_name %>
-            </strong> (<%= user.email %>)?</p>
-        <p>This immediately revokes access and signs the user out. Past report counts and audit events remain for
-            accountability. This action cannot be undone from the dashboard.</p>
-        <form method="post" action="/admin/users/<%= user.id %>/delete">
-            <input type="hidden" name="csrf" value="<%= csrf %>">
-            <div class="form-actions"><button type="submit" class="primary">Confirm deletion</button><a
-                    href="/admin">Cancel</a></div>
-        </form>
-    </section>
-    <%- include('footer') %>
+<div class="page-heading"><div><a class="breadcrumb" href="/admin">← &nbsp; Back to accounts</a><p class="eyebrow">ACCOUNT MANAGEMENT</p><h1>A moment to confirm.</h1><p>Review this action carefully before continuing.</p></div></div>
+<section class="panel form-panel glass danger-panel"><div class="danger-hero"><span class="danger-icon" aria-hidden="true">!</span><div><h2>Delete this account?</h2><p>You're about to remove access for the following account.</p></div></div><div class="delete-target"><span class="avatar">◉</span><div><strong><%= user.display_name %></strong><small><%= user.email %></small></div></div><p>Deleting this account immediately revokes access and signs the user out. Previous report counts and audit events remain available for accountability. <strong>This action cannot be undone from the dashboard.</strong></p><form method="post" action="/admin/users/<%= encodeURIComponent(user.id) %>/delete" data-enhanced-form><input type="hidden" name="csrf" value="<%= csrf %>"><div class="form-actions"><button class="button danger-button" type="submit"><span class="button-text">Yes, delete account</span><span aria-hidden="true">→</span><span class="button-spinner" aria-hidden="true"></span></button><a class="button secondary" href="/admin">Keep account</a></div></form></section>
+<%- include('footer') %>

@@ -1,0 +1,97 @@
+<%- include('header') %>
+<div class="page-heading profile-heading">
+  <div>
+    <p class="eyebrow">YOUR ACCOUNT</p>
+    <h1>Profile &amp; security</h1>
+    <p>Manage the identity used for the superadmin portal and protect access to your account.</p>
+  </div>
+  <span class="heading-decoration" aria-hidden="true">◎</span>
+</div>
+
+<div class="profile-grid">
+  <section class="panel glass profile-panel">
+    <div class="panel-heading profile-panel-heading">
+      <div>
+        <p class="eyebrow">PROFILE</p>
+        <h2>Personal details</h2>
+        <p>Your name, sign-in email and profile picture appear only in the admin experience.</p>
+      </div>
+    </div>
+
+    <form method="post" action="/admin/profile" data-enhanced-form data-profile-form>
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <input type="hidden" name="profile_image_data" value="" data-profile-image-data>
+
+      <div class="profile-avatar-editor">
+        <div class="profile-avatar-preview" data-avatar-preview data-has-image="<%= profile.profile_image_data ? 'true' : 'false' %>">
+          <img src="<%= profile.profile_image_data || '' %>" alt="Profile picture preview" <%= profile.profile_image_data ? '' : 'hidden' %> data-avatar-image>
+          <span data-avatar-fallback <%= profile.profile_image_data ? 'hidden' : '' %>><%= String(profile.display_name || 'A').trim().charAt(0).toUpperCase() %></span>
+          <span class="avatar-edit-badge" aria-hidden="true">✦</span>
+        </div>
+        <div class="profile-avatar-actions">
+          <strong>Profile picture</strong>
+          <p>Choose a PNG, JPEG or WebP image. It will be cropped and resized before upload.</p>
+          <div class="profile-avatar-buttons">
+            <label class="button secondary file-button" for="profile-picture-input">Choose image</label>
+            <input class="sr-only" id="profile-picture-input" type="file" accept="image/png,image/jpeg,image/webp" data-avatar-input>
+            <% if (profile.profile_image_data) { %>
+              <label class="remove-picture"><input type="checkbox" name="remove_picture" value="1" data-remove-picture> Remove current picture</label>
+            <% } %>
+          </div>
+          <small class="profile-image-status" data-profile-image-status aria-live="polite"></small>
+        </div>
+      </div>
+
+      <div class="soft-divider"></div>
+      <div class="form-grid profile-fields">
+        <label>Display name <span class="field-required">*</span>
+          <input name="display_name" required minlength="2" maxlength="120" autocomplete="name" value="<%= profile.display_name %>">
+        </label>
+        <label>Login email <span class="field-required">*</span>
+          <input type="email" name="email" required maxlength="254" autocomplete="email" value="<%= profile.email %>">
+        </label>
+      </div>
+      <p class="help">Changing your email changes the address you use to sign in everywhere with this superadmin account.</p>
+      <div class="form-actions">
+        <button class="button primary" type="submit"><span class="button-text">Save profile</span><span aria-hidden="true">→</span><span class="button-spinner" aria-hidden="true"></span></button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel glass profile-panel security-panel">
+    <div class="panel-heading profile-panel-heading">
+      <div>
+        <p class="eyebrow">SECURITY</p>
+        <h2>Change password</h2>
+        <p>Confirm your current password before setting a new one.</p>
+      </div>
+      <span class="security-icon" aria-hidden="true">⌁</span>
+    </div>
+
+    <form method="post" action="/admin/profile/password" data-password-change-form>
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <div class="security-fields">
+        <label>Current password
+          <div class="input-wrap profile-password-wrap"><input type="password" name="current_password" required autocomplete="current-password" placeholder="Enter current password"></div>
+        </label>
+        <label>New password
+          <div class="input-wrap profile-password-wrap"><input id="profile-new-password" type="password" name="new_password" required minlength="12" maxlength="72" autocomplete="new-password" placeholder="At least 12 characters"></div>
+        </label>
+        <label>Confirm new password
+          <div class="input-wrap profile-password-wrap"><input type="password" name="confirm_password" required minlength="12" maxlength="72" autocomplete="new-password" placeholder="Repeat new password"></div>
+        </label>
+      </div>
+      <div class="password-guidance"><span aria-hidden="true">✓</span><p>Use a unique password of 12–72 UTF-8 bytes. After changing it, all active sessions will be signed out for security.</p></div>
+      <div class="form-actions">
+        <button class="button primary" type="submit"><span class="button-text">Change password</span><span aria-hidden="true">→</span><span class="button-spinner" aria-hidden="true"></span></button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<section class="profile-meta glass">
+  <span><strong>Account type</strong><small>Superadmin</small></span>
+  <span><strong>Created</strong><small><%= profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '—' %></small></span>
+  <span><strong>Last profile update</strong><small><%= profile.updated_at ? new Date(profile.updated_at).toLocaleString() : '—' %></small></span>
+</section>
+<%- include('footer') %>

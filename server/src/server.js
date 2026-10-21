@@ -16,7 +16,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 app.use(helmet());
 app.use(express.json({ limit: '16kb' }));
-app.use(express.urlencoded({ extended: false, limit: '16kb' }));
+// Profile pictures are resized in the browser and sent as a compact data URL.
+app.use(express.urlencoded({ extended: false, limit: '768kb' }));
 app.use(cookieParser());
 app.use('/static', express.static(path.join(__dirname, '..', 'public'), { maxAge: '1d' }));
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false,
@@ -102,7 +103,10 @@ const webAuth = tryRoute((req,res,next) => {
   req.webAuth = { ...found, token };
   res.locals.csrf = found.session.csrf_token;
   res.locals.adminEmail = found.user.email;
+  res.locals.adminName = found.user.display_name;
+  res.locals.adminProfileImage = found.user.profile_image_data || null;
   res.locals.notice = typeof req.query.notice === 'string' ? req.query.notice.slice(0,160) : '';
+  res.locals.noticeType = req.query.notice_type === 'error' ? 'error' : 'success';
   next();
 });
 const csrf = tryRoute((req,res,next) => {
@@ -113,22 +117,38 @@ const csrf = tryRoute((req,res,next) => {
   next();
 });
 function webError(res, e, target) {
-  res.redirect(`${target}?notice=${encodeURIComponent(e.message || 'Operation failed')}`);
+  res.redirect(`${target}?notice=${encodeURIComponent(e.message || 'Operation failed')}&notice_type=error`);
 }
 app.get('/', (req,res) => res.redirect('/admin'));
-app.get('/admin/login', (req,res) => res.render('login', { error: null }));
+app.get('/admin/login', (req,res) => res.render('login', { error: null, email: '', loggedOut: req.query.signed_out === '1', passwordChanged: req.query.password_changed === '1' }));
 app.post('/admin/login', authLimit, tryRoute((req,res) => {
   try {
     const { user, token } = core.login(req.body.email, req.body.password);
     if (user.account_type !== 'superadmin') {
       core.revokeSession(token);
-      return res.status(403).render('login', { error: 'This portal is for superadmins only.' });
+      return res.status(403).render('login', { error: 'This portal is for superadmins only.', email: String(req.body.email || '').trim(), loggedOut: false, passwordChanged: false });
     }
     setAdminCookie(res, token);
     return res.redirect('/admin');
-  } catch (e) { return res.status(e.status || 400).render('login', { error: e.message }); }
+  } catch (e) { return res.status(e.status || 400).render('login', { error: e.message, email: String(req.body.email || '').trim(), loggedOut: false, passwordChanged: false }); }
 }));
 app.get('/admin', webAuth, (req,res) => res.render('dashboard', { page: 'dashboard', summary: core.summary(), users: core.listUsers() }));
+app.get('/admin/profile', webAuth, (req,res) => res.render('profile', {
+  page: 'profile', profile: core.adminProfile(req.webAuth.user)
+}));
+app.post('/admin/profile', webAuth, csrf, (req,res) => {
+  try {
+    core.updateAdminProfile(req.webAuth.user.id, req.body, req.webAuth.user.id);
+    res.redirect('/admin/profile?notice=Profile+updated');
+  } catch (e) { webError(res,e,'/admin/profile'); }
+});
+app.post('/admin/profile/password', webAuth, csrf, (req,res) => {
+  try {
+    core.changeAdminPassword(req.webAuth.user.id, req.body, req.webAuth.user.id);
+    clearAdminCookie(res);
+    res.redirect('/admin/login?password_changed=1');
+  } catch (e) { webError(res,e,'/admin/profile'); }
+});
 app.get('/admin/audit', webAuth, (req,res) => res.render('audit', { page: 'audit', events: core.listAudit(200,req.query.offset), accounts: core.reportUsage(), offset: Number(req.query.offset) || 0 }));
 app.get('/admin/reports', webAuth, (req,res) => res.render('reports', { page: 'reports', accounts: core.reportUsage(), summary: core.summary() }));
 app.get('/admin/reports/:id', webAuth, tryRoute((req,res) => res.render('report_detail', {
@@ -157,7 +177,7 @@ app.post('/admin/users/:id/delete', webAuth, csrf, (req,res) => {
 app.post('/admin/logout', webAuth, csrf, (req,res) => {
   core.revokeSession(req.webAuth.token);
   clearAdminCookie(res);
-  res.redirect('/admin/login');
+  res.redirect('/admin/login?signed_out=1');
 });
 
 app.use('/api', (req,res) => res.status(404).json({ error: 'Not found' }));

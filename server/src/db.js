@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  deleted_at TEXT
+  deleted_at TEXT,
+  profile_image_data TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_live_email ON users(email COLLATE NOCASE) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS sessions (
@@ -55,4 +56,11 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_events(created_at DESC);
 `);
+
+// Forward-compatible migration for installations created before admin profile pictures existed.
+// SQLite does not support IF NOT EXISTS for ADD COLUMN on all deployed versions, so inspect first.
+const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map(row => row.name));
+if (!userColumns.has('profile_image_data')) {
+  db.exec('ALTER TABLE users ADD COLUMN profile_image_data TEXT');
+}
 module.exports = db;

@@ -1,30 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="robots" content="noindex,nofollow">
-    <title>Hemo Guard | Admin sign in</title>
-    <link rel="stylesheet" href="/static/admin.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f8f5fb">
+  <title>Sign in · HemoGuard Admin</title>
+  <link rel="stylesheet" href="/static/admin.css?v=profile20261021">
+  <script src="/static/admin.js?v=profile20261021" defer></script>
 </head>
-
 <body class="login-page">
-    <main class="login-panel">
-        <h1>Superadmin login</h1>
-        <p>Hemo Guard account management</p>
-        <% if (error) { %>
-            <div class="notice error">
-                <%= error %>
-            </div>
-            <% } %>
-                <form action="/admin/login" method="post"><label>Email <input autocomplete="username" type="email"
-                            name="email" required maxlength="254"></label>
-                    <label>Password <input autocomplete="current-password" type="password" name="password"
-                            required></label>
-                    <button type="submit" class="primary">Sign in</button>
-                </form>
-    </main>
-</body>
+  <div class="liquid-bg" aria-hidden="true">
+    <span class="liquid-orb liquid-orb-a"></span>
+    <span class="liquid-orb liquid-orb-b"></span>
+    <span class="liquid-orb liquid-orb-c"></span>
+  </div>
 
+  <main class="login-shell">
+    <section class="login-card glass" <%= error ? 'data-has-error="true"' : '' %> aria-labelledby="login-title">
+      <div class="login-brand">
+        <!-- Replace /public/hemoguard-logo.svg with your real logo, or change this src path. -->
+        <img class="brand-logo brand-logo-login" src="/static/hemoguard-logo.svg" alt="HemoGuard logo">
+        <div class="brand-wordmark"><strong>HemoGuard</strong><span>Superadmin</span></div>
+      </div>
+
+      <h1 id="login-title" class="sr-only">HemoGuard superadmin sign in</h1>
+
+      <% if (error) { %>
+        <div class="notice error auth-error" role="alert">
+          <span class="notice-icon" aria-hidden="true">!</span>
+          <span><strong>Login unsuccessful</strong><small><%= error %></small></span>
+        </div>
+      <% } %>
+
+      <% if (typeof loggedOut !== 'undefined' && loggedOut) { %>
+        <div class="notice success" role="status">
+          <span class="notice-icon" aria-hidden="true">✓</span>
+          <span><strong>Signed out securely</strong><small>Your admin session has ended.</small></span>
+        </div>
+      <% } %>
+
+      <% if (typeof passwordChanged !== 'undefined' && passwordChanged) { %>
+        <div class="notice success" role="status">
+          <span class="notice-icon" aria-hidden="true">✓</span>
+          <span><strong>Password updated</strong><small>Sign in again with your new password.</small></span>
+        </div>
+      <% } %>
+
+      <form action="/admin/login" method="post" class="login-form" data-login-form>
+        <label for="login-email">Email</label>
+        <div class="input-wrap">
+          <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16v11H4zM4.8 7.2 12 12.3l7.2-5.1"/></svg>
+          <input id="login-email" autocomplete="username" type="email" name="email" placeholder="admin@example.com" required maxlength="254" value="<%= typeof email !== 'undefined' ? email : '' %>" <%= error ? '' : 'autofocus' %>>
+        </div>
+
+        <div class="password-row"><label for="login-password">Password</label><span class="caps-warning" id="caps-warning" hidden>Caps Lock is on</span></div>
+        <div class="input-wrap">
+          <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.8a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6z"/></svg>
+          <input id="login-password" autocomplete="current-password" type="password" name="password" placeholder="Enter password" required <%= error ? 'autofocus' : '' %>>
+          <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+
+        <button type="submit" class="primary login-submit">
+          <span class="button-text">Sign in</span>
+          <span class="button-arrow" aria-hidden="true">→</span>
+          <span class="button-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+    </section>
+  </main>
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
 </html>

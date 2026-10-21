@@ -1,89 +1,112 @@
 <%- include('header') %>
-    <div class="page-heading">
-        <div>
-            <h1>Accounts & subscriptions</h1>
-            <p>Manage individual users and laboratories. All dates are shown in UTC.</p>
-        </div><a class="primary action" href="/admin/users/new">Create account</a>
+<section class="hero glass">
+  <div class="hero-copy">
+    <span class="eyebrow" style="font-weight: 800 !important; color: rgba(0, 0, 0, 0.76); font-size: medium;"><span class="status-led"></span>SUPERADMIN OVERVIEW</span>
+    <p>Create and manage user or laboratory accounts, control trials and subscriptions, and review report activity from one focused workspace.</p>
+    <div class="hero-actions">
+      <a href="/admin/users/new" class="button primary"><span aria-hidden="true">＋</span> Create account</a>
+      <a href="/admin/reports" class="button secondary">View report activity <span aria-hidden="true">→</span></a>
     </div>
-    <section class="metrics" aria-label="Summary">
-        <% const cards=[
-        ['Users',summary.total_users],
-        ['Labs',summary.labs],
-        ['Individuals',summary.persons],
-        ['All trial accounts',summary.trial_accounts],
-        ['Active trials',summary.active_trials],
-        ['All subscriptions',summary.subscription_accounts],
-        ['Active subscriptions',summary.active_subscriptions],
-        ['Expired',summary.expired],['Stopped',summary.stopped],
-        ['Disabled',summary.disabled],
-        ['Reports generated',summary.reports_total],
-        ['Scanned reports',summary.reports_scanned],
-        ['Manual reports',summary.reports_manual]]; %>
-            <% for (const [label,count] of cards) { %>
-                <div class="metric"><span>
-                        <%= label %>
-                    </span><strong>
-                        <%= count %>
-                    </strong></div>
-                <% } %>
-    </section>
-    <section class="panel">
-        <div class="panel-heading">
-            <h2>All accounts</h2><a href="/admin/reports">View reports by user / lab →</a><span>
-                <%= users.length %> active records
-            </span>
-        </div>
-        <div class="table-scroll">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name / email</th>
-                        <th>Type</th>
-                        <th>Access</th>
-                        <th>Expires (UTC)</th>
-                        <th>Reports</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% for (const u of users) { %>
-                        <tr>
-                            <td><b>
-                                    <%= u.display_name %>
-                                </b><small>
-                                    <%= u.email %>
-                                </small></td>
-                            <td>
-                                <%= u.account_type %>
-                            </td>
-                            <td><span class="pill">
-                                    <%= u.access_plan %> · <%= u.status %>
-                                </span></td>
-                            <td>
-                                <%= u.plan_expires_at ? new
-                                    Date(u.plan_expires_at).toLocaleString('en-GB',{timeZone:'UTC'}) : '—' %>
-                            </td>
-                            <td><strong>
-                                    <%= u.reports_count %>
-                                </strong><small>
-                                    <%= u.scans_count %> scan / <%= u.manual_count %> manual
-                                </small></td>
-                            <td>
-                                <div class="actions"><a href="/admin/reports/<%= u.id %>">Reports</a><a
-                                        href="/admin/users/<%= u.id %>/edit">Edit</a><a
-                                        href="/admin/users/<%= u.id %>/plan">Plan</a>
-                                    <a class="danger-link" href="/admin/users/<%= u.id %>/delete">Delete</a>
-                                </div>
-                            </td>
-                        </tr>
-                        <% } %>
-                            <% if (!users.length) { %>
-                                <tr>
-                                    <td colspan="6">No users yet. Create an account to start.</td>
-                                </tr>
-                                <% } %>
-                </tbody>
-            </table>
-        </div>
-    </section>
-    <%- include('footer') %>
+  </div>
+</section>
+
+<div class="section-line"><div><p class="eyebrow">CURRENT STATUS</p><h2>Platform at a glance</h2></div><span class="section-tag">Live account statistics <span class="online-dot"></span></span></div>
+<section class="metrics" aria-label="Summary">
+  <% const cards=[
+    ['Total accounts',summary.total_users,'◈','violet'],
+    ['Laboratories',summary.labs,'▦','cyan'],
+    ['Individuals',summary.persons,'◉','rose'],
+    ['Active trials',summary.active_trials,'◷','amber'],
+    ['Active subscriptions',summary.active_subscriptions,'✦','green'],
+    ['Reports generated',summary.reports_total,'▥','violet'],
+    ['Scanned reports',summary.reports_scanned,'▧','cyan'],
+    ['Manual reports',summary.reports_manual,'≡','rose'],
+    ['All trial accounts',summary.trial_accounts,'◴','amber'],
+    ['All subscriptions',summary.subscription_accounts,'✧','green'],
+    ['Expired',summary.expired,'⌛','rose'],
+    ['Stopped',summary.stopped,'⏸','amber'],
+    ['Disabled',summary.disabled,'⊘','slate']
+  ]; %>
+  <% for (const [label,count,symbol,tone] of cards) { %><article class="metric metric-<%= tone %>"><div class="metric-header"><span class="metric-icon" aria-hidden="true"><%= symbol %></span><span class="metric-gleam" aria-hidden="true">↗</span></div><span class="metric-label"><%= label %></span><strong><%= count %></strong></article><% } %>
+</section>
+
+<section class="panel table-panel glass">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">ACCOUNT DIRECTORY</p>
+      <h2>Users and laboratories</h2>
+      <p>Search, review access status, and open the actions you need.</p>
+    </div><span class="count-chip">
+      <%= users.length %> accounts
+    </span>
+  </div>
+  <div class="table-tools"><label class="search-field" for="account-search"><span aria-hidden="true">⌕</span><input
+        type="search" id="account-search" placeholder="Search name, email, plan…" autocomplete="off"
+        data-table-search="accounts-table"><span class="key-tip">SEARCH</span></label><a class="button secondary small"
+      href="/admin/reports">Usage reports <span aria-hidden="true">→</span></a></div>
+  <div class="table-scroll">
+    <table id="accounts-table">
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Type</th>
+          <th>Access status</th>
+          <th>Expires (UTC)</th>
+          <th>Reports</th>
+          <th>Manage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const u of users) { %>
+          <tr>
+            <td>
+              <div class="person-cell"><span class="avatar <%= u.account_type==='lab' ? 'avatar-lab' : '' %>"
+                  aria-hidden="true">
+                  <%= u.account_type==='lab' ? '▦' : '◉' %>
+                </span><span><strong>
+                    <%= u.display_name %>
+                  </strong><small>
+                    <%= u.email %>
+                  </small></span></div>
+            </td>
+            <td><span class="type-pill">
+                <%= u.account_type==='lab' ? 'Laboratory' : 'Individual' %>
+              </span></td>
+            <td><span
+                class="pill pill-<%= u.status==='active' ? 'active' : u.status==='expired' ? 'expired' : 'muted' %>"><span
+                  class="pill-dot"></span>
+                <%= u.access_plan %> · <%= u.status %>
+              </span></td>
+            <td class="date-cell">
+              <%= u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleString('en-GB',{timeZone:'UTC'}) : '—' %>
+            </td>
+            <td><strong class="table-number">
+                <%= u.reports_count %>
+              </strong><small>
+                <%= u.scans_count %> scanned · <%= u.manual_count %> manual
+              </small></td>
+            <td>
+              <div class="actions account-actions" aria-label="Account actions"><a class="action-button action-reports"
+                  href="/admin/reports/<%= encodeURIComponent(u.id) %>"><span>Reports</span></a><a class="action-button action-edit"
+                  href="/admin/users/<%= encodeURIComponent(u.id) %>/edit"><span>Edit</span></a><a class="action-button action-plan"
+                  href="/admin/users/<%= encodeURIComponent(u.id) %>/plan"><span>Plan</span></a><a class="action-button action-delete danger-link"
+                  href="/admin/users/<%= encodeURIComponent(u.id) %>/delete"><span>Delete</span></a></div>
+            </td>
+          </tr>
+          <% } %>
+            <% if (!users.length) { %>
+              <tr class="empty-row">
+                <td colspan="6">
+                  <div class="empty-state"><span aria-hidden="true">✧</span><strong>No accounts yet</strong>
+                    <p>Create the first user or laboratory account to get started.</p><a href="/admin/users/new"
+                      class="button primary small">Create account →</a>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+      </tbody>
+    </table>
+  </div>
+  <div class="search-empty" data-empty-for="accounts-table" hidden>No accounts match your search.</div>
+</section>
+<%- include('footer') %>

@@ -1,6 +1,28 @@
-</main>
-<footer>Hemo Guard | Access and report-count administration. No patient report values are stored on this server.
-</footer>
-</body>
+    </main>
+    <footer class="site-footer"><span>HemoGuard Superadmin</span><span>Secure access · De-identified usage analytics</span></footer>
+  </div>
 
+  <div class="modal-backdrop" id="logout-modal" hidden>
+    <section class="logout-modal glass" role="alertdialog" aria-modal="true" aria-labelledby="logout-title" aria-describedby="logout-description" tabindex="-1">
+      <div class="modal-logo-wrap" aria-hidden="true"><img src="/static/hemoguard-logo.svg" alt=""></div>
+      <h2 id="logout-title">Sign out?</h2>
+      <p id="logout-description">Your current admin session will be closed securely.</p>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-stay>Cancel</button>
+        <button class="button primary" type="button" data-confirm-logout>Sign out <span aria-hidden="true">→</span></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="session-transition" id="session-transition" hidden role="status" aria-live="polite">
+    <div class="transition-glass glass">
+      <div class="transition-logo"><img src="/static/hemoguard-logo.svg" alt="" aria-hidden="true"></div>
+      <h2>Closing your session</h2>
+      <p>Signing out securely…</p>
+      <div class="loading-track"><span></span></div>
+    </div>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
 </html>
