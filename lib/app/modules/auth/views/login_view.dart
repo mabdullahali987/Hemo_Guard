@@ -1,17 +1,21 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/api_client.dart';
+import '../../../services/system_appearance.dart';
 
 // Page-local palette. Global AppTheme and every other Flutter screen stay intact.
 class _Pearl {
   static const violet = Color(0xFF7C3AED);
   static const magenta = Color(0xFFC026D3);
   static const rose = Color(0xFFFB7185);
-  static const ink = Color(0xFF281733);
-  static const muted = Color(0xFF786780);
+  // System brightness only: no toggle and no change to the application theme.
+  static bool get dark => HemoGuardSystemAppearance.isDark;
+  static Color get ink => dark ? const Color(0xFFF4F4F4) : const Color(0xFF281733);
+  static Color get muted => dark ? const Color(0xFFB0B0B0) : const Color(0xFF786780);
   static const gradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -26,7 +30,7 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
   final email = TextEditingController();
   final password = TextEditingController();
   final form = GlobalKey<FormState>();
@@ -35,7 +39,39 @@ class _LoginViewState extends State<LoginView> {
   String? error;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    HemoGuardSystemAppearance.addListener(_onSystemAppearanceChanged);
+    _refreshSystemAppearance();
+  }
+
+  void _onSystemAppearanceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshSystemAppearance() async {
+    await HemoGuardSystemAppearance.refresh();
+    if (mounted) setState(() {});
+  }
+
+  // Repaint the existing liquid-glass colors when Android/iOS changes mode.
+  @override
+  void didChangePlatformBrightness() {
+    _refreshSystemAppearance();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _refreshSystemAppearance();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    HemoGuardSystemAppearance.removeListener(_onSystemAppearanceChanged);
     email.dispose();
     password.dispose();
     super.dispose();
@@ -63,19 +99,28 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    // Depend on the operating-system theme so switching it live rebuilds login.
+    final dark = HemoGuardSystemAppearance.isDark;
     final reducedMotion = MediaQuery.of(context).disableAnimations;
     final base = Theme.of(context);
     final themed = base.copyWith(
-      colorScheme: ColorScheme.fromSeed(seedColor: _Pearl.violet),
+      brightness: dark ? Brightness.dark : Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+          seedColor: _Pearl.violet,
+          brightness: dark ? Brightness.dark : Brightness.light,
+        ),
       scaffoldBackgroundColor: Colors.transparent,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(.62),
+        fillColor: dark
+            ? const Color(0xFF111111).withOpacity(.78)
+            : Colors.white.withOpacity(.62),
+        labelStyle: dark ? TextStyle(color: _Pearl.muted) : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 17),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(17)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),
-          borderSide: BorderSide(color: _Pearl.violet.withOpacity(.12)),
+          borderSide: BorderSide(color: _Pearl.violet.withOpacity(dark ? .50 : .12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),
@@ -88,7 +133,13 @@ class _LoginViewState extends State<LoginView> {
       ),
     );
 
-    return Theme(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+      ),
+      child: Theme(
       data: themed,
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -147,7 +198,7 @@ class _LoginViewState extends State<LoginView> {
                                   ),
                                 ),
                                 const SizedBox(height: 19),
-                                const Text(
+                                Text(
                                   'HemoGuard',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
@@ -158,7 +209,7 @@ class _LoginViewState extends State<LoginView> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'WELCOME BACK',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
@@ -169,7 +220,7 @@ class _LoginViewState extends State<LoginView> {
                                   ),
                                 ),
                                 const SizedBox(height: 31),
-                                const Text(
+                                Text(
                                   'Sign in',
                                   style: TextStyle(
                                     color: _Pearl.ink,
@@ -179,7 +230,7 @@ class _LoginViewState extends State<LoginView> {
                                   ),
                                 ),
                                 const SizedBox(height: 5),
-                                const Text(
+                                Text(
                                   'Enter your account credentials.',
                                   style: TextStyle(
                                     color: _Pearl.muted,
@@ -193,7 +244,7 @@ class _LoginViewState extends State<LoginView> {
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   autofillHints: const [AutofillHints.email],
-                                  style: const TextStyle(color: _Pearl.ink),
+                                  style: TextStyle(color: _Pearl.ink),
                                   decoration: const InputDecoration(
                                     labelText: 'Email address',
                                     prefixIcon: Icon(Icons.mail_outline_rounded),
@@ -209,7 +260,7 @@ class _LoginViewState extends State<LoginView> {
                                   obscureText: !showPassword,
                                   textInputAction: TextInputAction.done,
                                   autofillHints: const [AutofillHints.password],
-                                  style: const TextStyle(color: _Pearl.ink),
+                                  style: TextStyle(color: _Pearl.ink),
                                   decoration: InputDecoration(
                                     labelText: 'Password',
                                     prefixIcon:
@@ -242,7 +293,9 @@ class _LoginViewState extends State<LoginView> {
                                           child: Container(
                                             padding: const EdgeInsets.all(13),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFFE9EF)
+                                              color: (dark
+                                                  ? const Color(0xFF512039)
+                                                  : const Color(0xFFFFE9EF))
                                                   .withOpacity(.76),
                                               borderRadius:
                                                   BorderRadius.circular(14),
@@ -255,17 +308,17 @@ class _LoginViewState extends State<LoginView> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Icon(
+                                                Icon(
                                                   Icons.error_outline_rounded,
-                                                  color: Color(0xFFB92851),
+                                                  color: dark ? const Color(0xFFFFAFC3) : const Color(0xFFB92851),
                                                   size: 20,
                                                 ),
                                                 const SizedBox(width: 10),
                                                 Expanded(
                                                   child: Text(
                                                     error!,
-                                                    style: const TextStyle(
-                                                      color: Color(0xFF8D2645),
+                                                    style: TextStyle(
+                                                      color: dark ? const Color(0xFFFFCEDB) : const Color(0xFF8D2645),
                                                       fontWeight: FontWeight.w600,
                                                       fontSize: 12,
                                                     ),
@@ -353,6 +406,7 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -365,16 +419,14 @@ class _LoginBackdrop extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
+          DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFBF9FC),
-                  Color(0xFFF7EDFC),
-                  Color(0xFFFFF2F6),
-                ],
+                colors: _Pearl.dark
+                    ? const [Color(0xFF040404), Color(0xFF0B0B0B), Color(0xFF111111)]
+                    : const [Color(0xFFFBF9FC), Color(0xFFF7EDFC), Color(0xFFFFF2F6)],
               ),
             ),
           ),
@@ -383,7 +435,7 @@ class _LoginBackdrop extends StatelessWidget {
             top: -155,
             child: _GlowOrb(
               size: 390,
-              color: _Pearl.violet.withOpacity(.22),
+              color: _Pearl.dark ? const Color(0x16FFFFFF) : _Pearl.violet.withOpacity(.22),
             ),
           ),
           Positioned(
@@ -391,7 +443,7 @@ class _LoginBackdrop extends StatelessWidget {
             top: 150,
             child: _GlowOrb(
               size: 370,
-              color: _Pearl.rose.withOpacity(.21),
+              color: _Pearl.dark ? const Color(0x18FF9DAE) : _Pearl.rose.withOpacity(.21),
             ),
           ),
           Positioned(
@@ -399,7 +451,7 @@ class _LoginBackdrop extends StatelessWidget {
             bottom: -185,
             child: _GlowOrb(
               size: 350,
-              color: _Pearl.magenta.withOpacity(.16),
+              color: _Pearl.dark ? const Color(0x12FFFFFF) : _Pearl.magenta.withOpacity(.16),
             ),
           ),
           child,
@@ -437,7 +489,8 @@ class _LoginGlass extends StatelessWidget {
           borderRadius: BorderRadius.circular(33),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF764A84).withOpacity(.16),
+              color: (_Pearl.dark ? Colors.black : const Color(0xFF764A84))
+                  .withOpacity(_Pearl.dark ? .42 : .16),
               blurRadius: 55,
               offset: const Offset(0, 23),
             ),
@@ -454,12 +507,18 @@ class _LoginGlass extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(.76),
-                    Colors.white.withOpacity(.36),
+                    _Pearl.dark
+                        ? const Color(0xFF181818).withOpacity(.78)
+                        : Colors.white.withOpacity(.76),
+                    _Pearl.dark
+                        ? const Color(0xFF0D0D0D).withOpacity(.60)
+                        : Colors.white.withOpacity(.36),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(.91),
+                  color: _Pearl.dark
+                      ? Colors.white.withOpacity(.26)
+                      : Colors.white.withOpacity(.91),
                   width: 1.4,
                 ),
               ),
@@ -474,8 +533,8 @@ class _LoginGlass extends StatelessWidget {
                             center: const Alignment(-.85, -.95),
                             radius: 1.18,
                             colors: [
-                              Colors.white.withOpacity(.48),
-                              Colors.white.withOpacity(.06),
+                              Colors.white.withOpacity(_Pearl.dark ? .12 : .48),
+                              Colors.white.withOpacity(_Pearl.dark ? .018 : .06),
                               Colors.transparent,
                             ],
                           ),

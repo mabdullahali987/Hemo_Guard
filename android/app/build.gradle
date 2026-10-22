@@ -24,7 +24,7 @@ defaultConfig {
     applicationId = "com.shah.hemo_guard"
 
     // Minimum Android version: Android 6.0
-    minSdkVersion = flutter.minSdkVersion
+    minSdkVersion = 23
 
     // Keep existing target SDK
     targetSdk = 33
