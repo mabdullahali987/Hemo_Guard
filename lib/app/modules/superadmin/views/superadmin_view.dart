@@ -648,45 +648,42 @@ class _SuperadminViewState extends State<SuperadminView> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WORKSPACE OVERVIEW',
+                    Text('Create and manage user or laboratory accounts, control trials and subscriptions, and review report activity from one place.',
                         style: TextStyle(
-                          letterSpacing: 1.6,
-                          color: _AdminColors.violet,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        )),
-                    SizedBox(height: 7),
-                    Text('Every account, in focus.',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: _AdminColors.ink,
-                          fontSize: 23,
-                          letterSpacing: -.65,
-                        )),
-                    SizedBox(height: 6),
-                    Text('Access plans and reporting activity at a glance.',
-                        style: TextStyle(
-                            fontSize: 12, color: _AdminColors.muted)),
+                            fontSize: 15, color: _AdminColors.muted)),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
               Container(
-                width: 58,
-                height: 58,
+                width: 55,
+                height: 55,
                 decoration: BoxDecoration(
                   gradient: _AdminColors.accent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(Icons.insights_rounded,
+                child: const Icon(Icons.integration_instructions_outlined,
                     color: Colors.white, size: 28),
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
-        const _SectionTitle(
-            title: 'At a glance', subtitle: 'Live account and report totals'),
+        _FrostedPanel(
+          padding: EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+          child: const Row(
+            children: [
+              Icon(Icons.radio_button_checked, color: Colors.red,size: 20,),
+              SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  'Live Overview',
+                  style: TextStyle(fontSize: 12, color: _AdminColors.muted,fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
