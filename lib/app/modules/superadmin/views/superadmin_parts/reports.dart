@@ -15,6 +15,15 @@ extension _SuperadminReports on _SuperadminViewState {
             style: TextStyle(color: _AdminColors.muted, fontSize: 12),
           ),
           const SizedBox(height: 15),
+          _FrostedPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('Patient-linked medical reports',style:TextStyle(color:_AdminColors.ink,fontSize:16,fontWeight:FontWeight.w800)),
+            const SizedBox(height:6),Text('Search all saved clinical screenings and see their originating laboratory or individual.',
+              style:TextStyle(color:_AdminColors.muted,fontSize:12)),
+            const SizedBox(height:12),
+            _GlassAction(label:'Open all patient reports',icon:Icons.folder_shared_outlined,
+              color:_AdminColors.violet,onTap:()=>Get.to(()=>const _AdminClinicalReportsPage())),
+          ])),
+          const SizedBox(height: 15),
           if (reportAccounts.isEmpty)
             _FrostedPanel(
               padding: EdgeInsets.all(24),
@@ -104,7 +113,7 @@ extension _SuperadminReports on _SuperadminViewState {
           ],
           const SizedBox(height: 8),
           Text(
-            'A lab account records combined activity for that lab login; staff members are not individually identified. Patient CBC data and images are not sent to the audit server.',
+            'Existing usage counters remain unchanged. New patient-linked reports are saved securely in the restricted clinical-record section. Laboratory staff members are not individually identified.',
             style: TextStyle(color: _AdminColors.muted, fontSize: 12),
           ),
         ],

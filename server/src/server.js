@@ -7,6 +7,8 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const { rateLimit } = require('express-rate-limit');
 const core = require('./core');
+const clinical = require('./clinical');
+const { makePdf } = require('./clinical_pdf');
 const { accessState } = require('./time');
 
 const app = express();
@@ -72,6 +74,32 @@ app.post('/api/reports/authorize', needAuth, tryRoute((req,res) => {
 }));
 app.post('/api/reports/:id/complete', needAuth, tryRoute((req,res) => {
   res.json(core.completeReport(req.auth.user.id, req.params.id));
+}));
+
+// Additive clinical workflow: older counting-only report endpoints remain intact.
+app.get('/api/consent/current', needAuth, tryRoute((req,res) => res.json(clinical.consentCurrent())));
+app.post('/api/consent/intents', needAuth, tryRoute((req,res) =>
+  res.status(201).json(clinical.startConsent(req.auth.user.id,req.body))));
+app.post('/api/patients/match', needAuth, tryRoute((req,res) =>
+  res.json(clinical.matchPatient(req.auth.user.id,req.body))));
+app.get('/api/patients', needAuth, tryRoute((req,res) =>
+  res.json(clinical.listPatients(req.auth.user.id,req.query.search,req.query.limit))));
+app.get('/api/patients/:id/reports', needAuth, tryRoute((req,res) =>
+  res.json(clinical.patientReports(req.auth.user.id,req.params.id))));
+app.post('/api/clinical-reports/finalize', needAuth, tryRoute((req,res) =>
+  res.status(201).json(clinical.finalize(req.auth.user.id,req.body))));
+app.get('/api/clinical-reports/:id', needAuth, tryRoute((req,res) =>
+  res.json(clinical.reportDetail(req.auth.user.id,req.params.id))));
+app.get('/api/admin/clinical-reports', ...needAdminApi, tryRoute((req,res) =>
+  res.json(clinical.adminReports(req.auth.user.id,req.query.limit,req.query.offset))));
+app.get('/api/admin/clinical-reports/:id', ...needAdminApi, tryRoute((req,res) =>
+  res.json(clinical.reportDetail(req.auth.user.id,req.params.id,true))));
+app.get('/api/admin/clinical-reports/:id/pdf', ...needAdminApi, tryRoute((req,res) => {
+  const {report}=clinical.reportDetail(req.auth.user.id,req.params.id,true);
+  res.set('Content-Type','application/pdf');
+  res.set('Content-Disposition',`attachment; filename="HemoGuard-${report.id}.pdf"`);
+  res.set('Cache-Control','no-store');
+  res.send(makePdf(report));
 }));
 
 app.get('/api/admin/summary', ...needAdminApi, (req,res) => res.json(core.summary()));
@@ -153,6 +181,19 @@ app.get('/admin/audit', webAuth, (req,res) => res.render('audit', { page: 'audit
 app.get('/admin/reports', webAuth, (req,res) => res.render('reports', { page: 'reports', accounts: core.reportUsage(), summary: core.summary() }));
 app.get('/admin/reports/:id', webAuth, tryRoute((req,res) => res.render('report_detail', {
   page: 'reports', ...core.reportHistory(req.params.id, 50, req.query.offset)
+})));
+app.get('/admin/patient-reports', webAuth, tryRoute((req,res) => res.render('patient_reports', {
+  page:'reports', ...clinical.adminReports(req.webAuth.user.id,100,req.query.offset)
+})));
+app.get('/admin/patient-reports/:id/pdf', webAuth, tryRoute((req,res) => {
+  const {report}=clinical.reportDetail(req.webAuth.user.id,req.params.id,true);
+  res.set('Content-Type','application/pdf');
+  res.set('Content-Disposition',`attachment; filename="HemoGuard-${report.id}.pdf"`);
+  res.set('Cache-Control','no-store');
+  res.send(makePdf(report));
+}));
+app.get('/admin/patient-reports/:id', webAuth, tryRoute((req,res) => res.render('patient_report_detail', {
+  page:'reports', ...clinical.reportDetail(req.webAuth.user.id,req.params.id,true)
 })));
 app.get('/admin/users/new', webAuth, (req,res) => res.render('account', { page: 'accounts', user: null }));
 app.get('/admin/users/:id/edit', webAuth, tryRoute((req,res) => res.render('account', { page: 'accounts', user: core.publicUser(getTarget(req)) })));

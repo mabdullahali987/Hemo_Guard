@@ -1,0 +1,16 @@
+<%- include('header') %>
+<section class="page-heading page-heading-hero"><div><p class="eyebrow">MEDICAL RECORD · READ ONLY</p><h1>Clinical <span>report.</span></h1><p>Patient <strong><%= report.patient_name_snapshot %></strong> · <%= report.public_id %></p></div><div class="heading-actions"><a class="button primary" href="/admin/patient-reports/<%= encodeURIComponent(report.id) %>/pdf">↓ Download PDF</a><a class="button secondary" href="/admin/patient-reports">← All patient reports</a></div></section>
+<section class="panel table-panel glass"><div class="panel-heading"><div><p class="eyebrow">REPORT ID</p><h2><%= report.id %></h2><p>Completed <%= new Date(report.created_at).toLocaleString('en-GB',{timeZone:'UTC'}) %> UTC</p></div><span class="count-chip">Screening aid · not a diagnosis</span></div>
+<div class="table-scroll"><table><tbody>
+<tr><th scope="row">Patient ID</th><td><%= report.public_id %></td></tr>
+<tr><th scope="row">Name at test</th><td><%= report.patient_name_snapshot %></td></tr>
+<tr><th scope="row">Age / sex at test</th><td><%= report.patient_age_at_test == null?'Not recorded':report.patient_age_at_test %> / <%= report.patient_sex_at_test %></td></tr>
+<tr><th scope="row">Originating account</th><td><%= report.account_name_snapshot %> (<%= report.account_type_snapshot %>) · <%= report.account_id %></td></tr>
+<tr><th scope="row">Sample date / laboratory reference</th><td><%= report.sample_date || 'Not provided' %> / <%= report.source_report_number || 'Not provided' %></td></tr>
+<% for(const [key,value] of Object.entries(report.cbc)) { %><tr><th scope="row"><%= key.replaceAll('_',' ').toUpperCase() %></th><td><%= value %></td></tr><% } %>
+<tr><th scope="row">AI screening classification</th><td><%= report.prediction.is_thalassemia?'Indicators detected':'No indicators detected' %></td></tr>
+<tr><th scope="row">AI screening probability</th><td><%= (report.prediction.probability*100).toFixed(1) %>%</td></tr>
+<tr><th scope="row">Model version</th><td><%= report.prediction.model_version %></td></tr>
+<tr><th scope="row">Consent</th><td>Operator checkbox attestation · <%= consent.id %> · <%= consent.consent_version %> · <%= consent.recorded_at %></td></tr>
+</tbody></table></div><p class="table-footnote">The operator attested that permission had been obtained; this is not a verified patient signature. This screening does not establish a clinical diagnosis. Medical records are append-only.</p></section>
+<%- include('footer') %>

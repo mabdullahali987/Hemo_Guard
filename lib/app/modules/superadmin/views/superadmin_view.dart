@@ -15,6 +15,7 @@ part 'superadmin_parts/dock.dart';
 part 'superadmin_parts/overview.dart';
 part 'superadmin_parts/accounts.dart';
 part 'superadmin_parts/reports.dart';
+part 'superadmin_parts/clinical_reports.dart';
 part 'superadmin_parts/audit.dart';
 part 'superadmin_parts/account_actions.dart';
 part 'superadmin_parts/dialog_surface.dart';

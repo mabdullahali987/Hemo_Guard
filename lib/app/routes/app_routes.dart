@@ -9,6 +9,7 @@ abstract class Routes {
   static const SUPERADMIN = _Paths.SUPERADMIN;
   static const SCANNER = _Paths.SCANNER;
   static const SETTINGS = _Paths.SETTINGS;
+  static const PATIENTS = _Paths.PATIENTS;
 }
 
 abstract class _Paths {
@@ -19,4 +20,5 @@ abstract class _Paths {
   static const SUPERADMIN = '/superadmin';
   static const SCANNER = '/scanner';
   static const SETTINGS = '/settings';
+  static const PATIENTS = '/patients';
 }

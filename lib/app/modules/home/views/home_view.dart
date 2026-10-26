@@ -99,6 +99,10 @@ class HomeView extends GetView<HomeController> {
           onTap: () =>
               Get.toNamed(Routes.SCANNER, arguments: {'type': 'text'}),
         ),
+        const SizedBox(height:16),
+        _ActionCard(icon:Icons.folder_shared_outlined,title:'Patient Reports',
+          subtitle:'View your patients and previous CBC screenings',
+          onTap:()=>Get.toNamed(Routes.PATIENTS)),
       ],
     );
   }

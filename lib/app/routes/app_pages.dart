@@ -10,6 +10,7 @@ import '../modules/scanner/bindings/scanner_binding.dart';
 import '../modules/scanner/views/scanner_view.dart';
 import '../modules/settings/bindings/settings_binding.dart';
 import '../modules/settings/views/settings_view.dart';
+import '../modules/patients/views/patients_view.dart';
 
 part 'app_routes.dart';
 
@@ -35,6 +36,7 @@ class AppPages {
       binding: ScannerBinding(),
       middlewares: [UserOnlyMiddleware()],
     ),
+    GetPage(name: _Paths.PATIENTS, page: () => const PatientsView(), middlewares: [UserOnlyMiddleware()]),
     GetPage(
       name: _Paths.SETTINGS,
       page: () => const SettingsView(),

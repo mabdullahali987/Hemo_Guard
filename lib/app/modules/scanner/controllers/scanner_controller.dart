@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +11,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../../../data/cbc_parser.dart';
+import '../../../data/patient_metadata_parser.dart';
+import '../../../data/hemoguard_pdf_generator.dart';
+import '../widgets/patient_review_dialog.dart';
+import '../widgets/patient_match_dialog.dart';
 import '../../../data/thalassemia_predictor.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/api_client.dart';
@@ -35,6 +41,49 @@ class ScannerController extends GetxController {
   final RxBool isDetected = false.obs;
   final RxBool hasScanned = false.obs;
 
+  // New patient workflow state; independent from the CBC prediction model.
+  final RxBool consentConfirmed = false.obs;
+  final RxBool consentLoading = true.obs;
+  final RxString consentText = ''.obs;
+  final RxString consentVersion = ''.obs;
+  String? _consentIntentId;
+  Map<String,String> patientDraft = {};
+  final Rxn<Map<String,dynamic>> savedReport = Rxn<Map<String,dynamic>>();
+  final RxString patientPublicId = ''.obs;
+  final RxString pdfLocation = ''.obs;
+  String _requestId = _newRequestId();
+  static String _newRequestId() => '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1<<32)}';
+
+  Future<void> _loadConsent() async {
+    try {
+      final response = await Get.find<AuthService>().api('GET','/api/consent/current');
+      consentText.value = response['text']?.toString() ?? '';
+      consentVersion.value = response['version']?.toString() ?? '';
+    } catch(e) {
+      Get.snackbar('Consent information unavailable',e.toString(),snackPosition:SnackPosition.TOP);
+    } finally { consentLoading.value=false; }
+  }
+
+  Future<void> retryConsent() async {
+    if(consentLoading.value)return;
+    consentLoading.value=true;
+    await _loadConsent();
+  }
+
+  Future<void> confirmConsent() async {
+    if(consentVersion.value.isEmpty || consentLoading.value)return;
+    consentLoading.value=true;
+    try {
+      final response=await Get.find<AuthService>().api('POST','/api/consent/intents',
+        body:{'accepted':true,'version':consentVersion.value});
+      _consentIntentId=response['consent_intent_id']?.toString();
+      consentConfirmed.value=true;
+      if(!isText.value)await initCamera();
+    } catch(e) {
+      Get.snackbar('Consent not recorded',e.toString(),snackPosition:SnackPosition.TOP);
+    } finally {consentLoading.value=false;}
+  }
+
   final Rxn<ThalassemiaResult> result = Rxn<ThalassemiaResult>();
   bool get isThalassemia => result.value?.isThalassemia ?? false;
   double get probability => result.value?.probability ?? 0.0;
@@ -60,7 +109,7 @@ class ScannerController extends GetxController {
   void onInit() {
     super.onInit();
     _loadModel();
-    if (!isText.value) initCamera();
+    _loadConsent();
   }
 
   @override
@@ -128,6 +177,11 @@ class ScannerController extends GetxController {
     values.refresh();
     isDetected.value = false;
     result.value = null;
+    savedReport.value=null;
+    patientPublicId.value='';
+    pdfLocation.value='';
+    patientDraft={};
+    _requestId=_newRequestId();
     hasScanned.value = true;
     isProcessing.value = true;
     try {
@@ -139,6 +193,7 @@ class ScannerController extends GetxController {
         textControllers[p.key]!.text = v == null ? '' : _fmt(v);
       }
       values.refresh();
+      patientDraft=PatientMetadataParser.parse(rawText.value);
 
       if (parsed.isEmpty) {
         Get.snackbar(
@@ -153,7 +208,9 @@ class ScannerController extends GetxController {
           snackPosition: SnackPosition.TOP,
         );
       } else {
-        await runPrediction();
+        Get.snackbar('Report values detected',
+          'Review the patient information and CBC values, then tap Analyze.',
+          snackPosition:SnackPosition.TOP);
       }
     } catch (e) {
       debugPrint('OCR error: $e');
@@ -203,7 +260,9 @@ class ScannerController extends GetxController {
       CbcParser.parse(blockText).forEach((k, v) => merged.putIfAbsent(k, () => v));
 
       debugPrint('OCR: ${sw.elapsedMilliseconds}ms, ${merged.length} values');
-      await _dumpDebug(blockText, rowText, columnResult, merged, lines);
+      // Preserve diagnostic OCR dumps for debug builds only. Never persist
+      // identifiable raw patient text in a production release.
+      if (kDebugMode) await _dumpDebug(blockText, rowText, columnResult, merged, lines);
     } finally {
       await recognizer.close();
     }
@@ -361,9 +420,15 @@ class ScannerController extends GetxController {
   void setValue(String key, String text) {
     final cleaned = text.trim();
     values[key] = cleaned.isEmpty ? null : double.tryParse(cleaned);
+    if(savedReport.value != null) {result.value=null;isDetected.value=false;savedReport.value=null;pdfLocation.value='';}
   }
 
   void clearAll() {
+    // Every new finalized screening needs a fresh consent attestation.
+    if(savedReport.value != null) {
+      consentConfirmed.value=false;
+      _consentIntentId=null;
+    }
     for (final p in params) {
       values[p.key] = null;
       textControllers[p.key]!.clear();
@@ -371,6 +436,11 @@ class ScannerController extends GetxController {
     values.refresh();
     isDetected.value = false;
     result.value = null;
+    savedReport.value=null;
+    patientPublicId.value='';
+    pdfLocation.value='';
+    patientDraft={};
+    _requestId=_newRequestId();
   }
 
   /// Trim a trailing ".0" so 91.0 shows as "91" but 30.8 stays "30.8".
@@ -378,50 +448,117 @@ class ScannerController extends GetxController {
     return v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
   }
 
-  /// Successful analyses are counted once by the server before the result is
-  /// shown. Neither CBC data nor the calculated result is transmitted.
+  /// Patient-linked report flow. Existing XGBoost calculation is unchanged.
+  /// The new record and the original usage count finalize in one transaction.
   Future<void> runPrediction() async {
-    if (isAnalyzing.value) return;
-    if (!isModelLoaded) {
-      Get.snackbar('Model not ready', 'Please try again in a moment.',
-          snackPosition: SnackPosition.TOP);
+    if(isAnalyzing.value)return;
+    if(savedReport.value!=null) {
+      Get.snackbar('Already saved','This analysis is in patient history. Rescan for a new test.',snackPosition:SnackPosition.TOP);
       return;
     }
-    if (!canPredict) {
-      Get.snackbar(
-        'Missing values',
-        'Enter ${missingKeys.map(_shortFor).join(", ")} to run the analysis.',
-        snackPosition: SnackPosition.TOP,
-      );
+    if(!consentConfirmed.value || _consentIntentId==null) {
+      Get.snackbar('Consent required','Confirm patient permission before analyzing.',snackPosition:SnackPosition.TOP);
       return;
     }
-    isAnalyzing.value = true;
-    isDetected.value = false;
-    result.value = null;
+    if(!isModelLoaded){Get.snackbar('Model not ready','Please try again in a moment.',snackPosition:SnackPosition.TOP);return;}
+    if(!canPredict){Get.snackbar('Missing values','Enter ${missingKeys.map(_shortFor).join(", ")} to run analysis.',snackPosition:SnackPosition.TOP);return;}
+    isAnalyzing.value=true;
+    isDetected.value=false;
+    result.value=null;
     try {
-      final auth = Get.find<AuthService>();
-      final mode = isText.value ? 'text' : 'image';
-      final authorized = await auth.api('POST', '/api/reports/authorize',
-          body: {'mode': mode});
-      final sample = <String, double>{
-        for (final p in params) _featureKey[p.key]!: values[p.key]!,
-      };
-      // Keep the original predictor and all numerical calculations unchanged.
-      final calculated = _predictor!.predict(sample);
-      await auth.api('POST',
-          '/api/reports/${authorized['authorization_id']}/complete');
-      result.value = calculated;
-      isDetected.value = true;
-    } on ApiException catch (e) {
-      Get.snackbar('Access / report audit', e.message,
-          snackPosition: SnackPosition.TOP);
-    } catch (e) {
-      debugPrint('Prediction failed: $e');
-      Get.snackbar('Error', 'Prediction failed. Please try again.',
-          snackPosition: SnackPosition.TOP);
-    } finally {
-      isAnalyzing.value = false;
-    }
+      // Patient fields remain editable even when OCR filled them all.
+      final reviewed=await Get.dialog<Map<String,String>>(
+        PatientReviewDialog(initial:patientDraft),barrierDismissible:false);
+      if(reviewed==null)return;
+      patientDraft=reviewed;
+      final auth=Get.find<AuthService>();
+      final match=await auth.api('POST','/api/patients/match',body:{
+        'name':reviewed['name'],'age_at_test':reviewed['age_at_test'],
+        'sex':reviewed['sex'],'public_id':reviewed['public_id'],
+        'lab_patient_number':reviewed['lab_patient_number'],
+      });
+      final choices=(match['matches'] as List?)?.map((p)=>Map<String,dynamic>.from(p as Map)).toList()??[];
+      String? existingPatientId;
+      if(choices.isNotEmpty) {
+        final selection=await Get.dialog<String>(
+          PatientMatchDialog(matches:choices,verified:match['verified']==true),
+          barrierDismissible:false);
+        if(selection==null)return;
+        if(selection=='rescan') {
+          clearAll();
+          if(!isText.value)hasScanned.value=false;
+          return;
+        }
+        if(selection!='new') {
+          existingPatientId=selection;
+        } else {
+          // An explicit new-patient selection must not retain someone else's
+          // detected ID or already-assigned laboratory patient number.
+          reviewed['public_id']='';
+          reviewed['lab_patient_number']='';
+        }
+      }
+      final sample=<String,double>{for(final p in params)_featureKey[p.key]!:values[p.key]!};
+      // The existing predictor and numerical calculations are not altered.
+      final calculated=_predictor!.predict(sample);
+      final authorized=await auth.api('POST','/api/reports/authorize',
+        body:{'mode':isText.value?'text':'image'});
+      final finalized=await auth.api('POST','/api/clinical-reports/finalize',body:{
+        'authorization_id':authorized['authorization_id'],
+        'request_id':_requestId,
+        'consent_intent_id':_consentIntentId,
+        'existing_patient_id':existingPatientId,
+        'patient':{
+          'name':reviewed['name'],
+          'age_at_test':reviewed['age_at_test'],
+          'sex':reviewed['sex'],
+          'lab_patient_number':reviewed['lab_patient_number'],
+          'public_id':reviewed['public_id'],
+        },
+        'source_report_number':reviewed['source_report_number'],
+        'sample_date':reviewed['sample_date'],
+        'cbc':{
+          'hemoglobin':values['Hemoglobin Level (g/dL)'],
+          'rbc':values['RBC Count (mil/cmm)'],
+          'hematocrit':values['Hematocrit (%)'],
+          'mcv':values['MCV (fL)'],
+          'mch':values['MCH (pg)'],
+          'mchc':values['MCHC (g/dL)'],
+          'rdw_cv':values['RDW-CV (%)'],
+        },
+        'prediction':{
+          'is_thalassemia':calculated.isThalassemia,
+          'probability':calculated.probability,
+          'raw_score':calculated.rawScore,
+          'model_version':'xgboast.json-v1',
+        }
+      });
+      final report=Map<String,dynamic>.from(finalized['report'] as Map);
+      final patient=Map<String,dynamic>.from(finalized['patient'] as Map);
+      savedReport.value=report;
+      patientPublicId.value=patient['public_id']?.toString()??'';
+      result.value=calculated;
+      isDetected.value=true;
+      try {
+        final pdf=await HemoGuardPdfGenerator.generate(report,patientPublicId:patientPublicId.value);
+        pdfLocation.value=pdf.path;
+        Get.snackbar('Report saved','Patient ${patientPublicId.value} • PDF saved in HemoGuardReports',
+          snackPosition:SnackPosition.TOP);
+      } catch(e) {
+        Get.snackbar('Report saved','Medical record saved, but PDF creation failed: $e',snackPosition:SnackPosition.TOP);
+      }
+    } on ApiException catch(e) {
+      if(e.statusCode==403 && e.message.contains('Consent confirmation')) {
+        consentConfirmed.value=false;
+        _consentIntentId=null;
+        Get.snackbar('Consent expired','Confirm patient permission again before scanning.',snackPosition:SnackPosition.TOP);
+      } else {
+        Get.snackbar('Could not save report',e.message,snackPosition:SnackPosition.TOP);
+      }
+    } catch(e) {
+      debugPrint('Patient analysis failed: $e');
+      Get.snackbar('Error','Could not finish analysis. Please try again.',snackPosition:SnackPosition.TOP);
+    } finally {isAnalyzing.value=false;}
   }
 
   String _shortFor(String key) => CbcParser.parameterForKey(key)?.short ?? key;

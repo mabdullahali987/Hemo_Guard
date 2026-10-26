@@ -1,0 +1,69 @@
+part of '../superadmin_view.dart';
+
+/// Restricted cross-account clinical reports. Kept separate from existing
+/// report-usage cards, navigation dock, subscriptions and account management.
+class _AdminClinicalReportsPage extends StatefulWidget {
+  const _AdminClinicalReportsPage();
+  @override State<_AdminClinicalReportsPage> createState()=>_AdminClinicalReportsPageState();
+}
+class _AdminClinicalReportsPageState extends State<_AdminClinicalReportsPage> {
+  final auth=Get.find<AuthService>();
+  late Future<Map<String,dynamic>> reportsFuture;
+  int offset=0;
+  @override void initState(){super.initState();_load();}
+  void _load(){reportsFuture=auth.api('GET','/api/admin/clinical-reports?limit=100&offset=$offset');if(mounted)setState((){});}
+  @override Widget build(BuildContext context)=>_AdminCanvas(child:Scaffold(
+    backgroundColor:Colors.transparent,
+    appBar:AppBar(title:const Text('All Patient Reports'),backgroundColor:Colors.transparent,
+      foregroundColor:_AdminColors.ink,actions:[IconButton(onPressed:_load,icon:const Icon(Icons.refresh))]),
+    body:FutureBuilder<Map<String,dynamic>>(future:reportsFuture,builder:(context,snapshot){
+      if(!snapshot.hasData){if(snapshot.hasError)return Center(child:Text('Cannot load reports: ${snapshot.error}'));return const Center(child:CircularProgressIndicator());}
+      final list=(snapshot.data!['reports'] as List).cast<Map<String,dynamic>>();
+      final total=(snapshot.data!['total'] as num?)?.toInt()??0;
+      return ListView(padding:const EdgeInsets.all(17),children:[
+        _FrostedPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text('$total patient-linked reports',style:TextStyle(color:_AdminColors.ink,fontSize:23,fontWeight:FontWeight.w800)),
+          Text('Cross-account clinical record access is audited.',style:TextStyle(color:_AdminColors.muted,fontSize:12)),
+        ])),const SizedBox(height:15),
+        for(final r in list)...[
+          _FrostedPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(r['patient_name_snapshot']?.toString()??'',style:TextStyle(color:_AdminColors.ink,fontSize:16,fontWeight:FontWeight.w800)),
+            const SizedBox(height:4),Text(r['public_id']?.toString()??'',style:TextStyle(color:_AdminColors.muted)),
+            const SizedBox(height:8),Text('Origin: ${r['account_name_snapshot']}  •  ${r['account_type_snapshot']}',style:TextStyle(color:_AdminColors.ink)),
+            Text('Completed: ${r['created_at']}',style:TextStyle(color:_AdminColors.muted,fontSize:11)),
+            const SizedBox(height:8),_GlassAction(label:'View patient report',icon:Icons.open_in_new,
+              color:_AdminColors.violet,onTap:()=>_showDetail(r['id'].toString())),
+          ])),const SizedBox(height:12),
+        ],
+        if(list.isEmpty)const _FrostedPanel(child:Text('No patient-linked reports yet.')),
+        Row(children:[if(offset>0)TextButton(onPressed:(){offset=(offset-100).clamp(0,100000000);_load();},child:const Text('← Newer')),
+          const Spacer(),if(offset+list.length<total)TextButton(onPressed:(){offset+=100;_load();},child:const Text('Older →'))]),
+      ]);
+    }),
+  ));
+  Future<void> _showDetail(String id) async {
+    try {
+      final detail=await auth.api('GET','/api/admin/clinical-reports/${Uri.encodeComponent(id)}');
+      if(!mounted)return;
+      final report=Map<String,dynamic>.from(detail['report'] as Map);
+      final cbc=Map<String,dynamic>.from(report['cbc'] as Map);
+      final prediction=Map<String,dynamic>.from(report['prediction'] as Map);
+      await showModalBottomSheet<void>(context:context,useSafeArea:true,isScrollControlled:true,
+        backgroundColor:Colors.transparent,builder:(ctx)=>Padding(padding:const EdgeInsets.all(12),
+          child:_FrostedPanel(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,
+            crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text('Clinical report',style:TextStyle(color:_AdminColors.ink,fontSize:20,fontWeight:FontWeight.w800)),
+              const SizedBox(height:10),Text('Patient: ${report['patient_name_snapshot']}',style:TextStyle(color:_AdminColors.ink)),
+              Text('Patient ID: ${report['public_id']}',style:TextStyle(color:_AdminColors.ink)),
+              Text('Account: ${report['account_name_snapshot']} (${report['account_type_snapshot']})',style:TextStyle(color:_AdminColors.ink)),
+              const SizedBox(height:12),for(final e in cbc.entries)Padding(padding:const EdgeInsets.symmetric(vertical:3),
+                child:Text('${e.key.replaceAll('_',' ').toUpperCase()}: ${e.value}',style:TextStyle(color:_AdminColors.ink))),
+              const Divider(),Text(prediction['is_thalassemia']==true?'Indicators detected':'No indicators detected',
+                style:TextStyle(color:_AdminColors.ink,fontWeight:FontWeight.bold)),
+              Text('Consent: ${report['consent_id']}',style:TextStyle(color:_AdminColors.muted)),
+              Text('Model: ${prediction['model_version']}',style:TextStyle(color:_AdminColors.muted)),
+              const SizedBox(height:10),const Text('Screening aid only — not a diagnosis.'),
+            ])))));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Could not open report: $e')));}
+  }
+}

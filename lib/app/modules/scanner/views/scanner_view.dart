@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:hemo_guard/app/theme/app_theme.dart';
 import 'package:hemo_guard/app/data/cbc_parser.dart';
 import '../controllers/scanner_controller.dart';
+import '../widgets/consent_gate.dart';
 
 /// Display-only typical adult reference ranges (hints for the user; not used
 /// by the parser or the model).
@@ -37,6 +38,9 @@ class ScannerView extends GetView<ScannerController> {
       ),
       body: SafeArea(
         child: Obx(() {
+          if (!controller.consentConfirmed.value) {
+            return ConsentGate(controller: controller);
+          }
           final showCamera =
               !controller.isText.value && !controller.hasScanned.value;
           return showCamera ? const _CameraView() : const _FormView();
@@ -273,7 +277,7 @@ class _FormView extends GetView<ScannerController> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: busy ? null : controller.runPrediction,
+              onPressed: busy || controller.savedReport.value != null ? null : controller.runPrediction,
               child: const Text('Analyze'),
             ),
           ),
@@ -445,6 +449,14 @@ class _ResultBanner extends GetView<ScannerController> {
               style: TextStyle(
                   fontSize: 18, fontWeight: FontWeight.w800, color: color),
             ),
+            if (controller.patientPublicId.value.isNotEmpty) ...[
+              const SizedBox(height:10),
+              Text('Patient ID: ${controller.patientPublicId.value}',
+                style:const TextStyle(fontSize:13,fontWeight:FontWeight.w700)),
+              const SizedBox(height:4),
+              const Text('Saved as a new report. Previous records are unchanged.',
+                textAlign:TextAlign.center,style:TextStyle(fontSize:11)),
+            ],
           ],
         ),
       );
