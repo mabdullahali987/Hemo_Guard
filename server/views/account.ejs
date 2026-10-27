@@ -1,15 +1,81 @@
 <%- include('header') %>
-<div class="page-heading"><div><a class="breadcrumb" href="/admin">← &nbsp; Back to accounts</a><p class="eyebrow">ACCOUNT MANAGEMENT</p><h1><%= user ? 'Edit account' : 'Create account' %></h1><p><%= user ? 'Update login details or account availability without changing historical reporting data.' : 'Create secure access for an individual user or an entire laboratory.' %></p></div><span class="heading-decoration" aria-hidden="true">◈</span></div>
+<div class="page-heading">
+  <div><a class="breadcrumb" href="/admin">← &nbsp; Back to accounts</a>
+    <p class="eyebrow">ACCOUNT MANAGEMENT</p>
+    <h1>
+      <%= user ? 'Edit account' : 'Create account' %>
+    </h1>
+    <p>
+      <%= user ? 'Update login details or account availability without changing historical reporting data.'
+        : 'Create secure access for an individual user or an entire laboratory.' %>
+    </p>
+  </div><span class="heading-decoration" aria-hidden="true">◈</span>
+</div>
 <div class="form-layout">
-  <section class="panel form-panel glass"><div class="form-intro"><span class="section-icon">◉</span><div><h2>Account details</h2><p>Required fields are marked clearly.</p></div></div>
-    <form method="post" action="<%= user ? '/admin/users/' + encodeURIComponent(user.id) + '/edit' : '/admin/users' %>" data-enhanced-form>
+  <section class="panel form-panel glass">
+    <div class="form-intro"><span class="section-icon">◉</span>
+      <div>
+        <h2>Account details</h2>
+        <p>Required fields are marked clearly.</p>
+      </div>
+    </div>
+    <form method="post" action="<%= user ? '/admin/users/' + encodeURIComponent(user.id) + '/edit' : '/admin/users' %>"
+      data-enhanced-form>
       <input type="hidden" name="csrf" value="<%= csrf %>">
-      <div class="form-grid"><label>Display name / lab name <span class="field-required">*</span><input name="display_name" required maxlength="120" minlength="2" placeholder="e.g. Central Diagnostic Lab" value="<%= user ? user.display_name : '' %>"></label><label>Email for login <span class="field-required">*</span><input type="email" name="email" required maxlength="254" autocomplete="off" placeholder="name@example.com" value="<%= user ? user.email : '' %>"></label><label>Account type<select name="account_type"><option value="person" <%= user?.account_type==='person' ? 'selected' : '' %>>Individual</option><option value="lab" <%= user?.account_type==='lab' ? 'selected' : '' %>>Laboratory</option></select></label><label><%= user ? 'New password (optional)' : 'Initial password (12+ characters)' %><input type="password" name="password" minlength="12" maxlength="72" autocomplete="new-password" placeholder="<%= user ? 'Leave blank to keep current password' : 'Create a secure password' %>" <%= user ? '' : 'required' %>></label></div>
-      <% if (user) { %><div class="soft-divider"></div><label class="check"><input type="checkbox" name="is_active" value="true" <%= user.is_active ? 'checked' : '' %>><span><strong>Account enabled</strong><small>Turn this off to block future sign-ins immediately.</small></span></label><p class="help">Changing the password or disabling the account revokes existing sessions. Manage trial/subscription dates separately on the <a href="/admin/users/<%= encodeURIComponent(user.id) %>/plan">plan page →</a>.</p>
-      <% } else { %><div class="soft-divider"></div><div class="form-intro minor"><span class="section-icon">◷</span><div><h2>Initial access</h2><p>Choose the plan and duration that should apply immediately after creation.</p></div></div><div class="form-grid"><label>Plan type<select name="access_plan" data-access-plan><option value="trial">Trial</option><option value="subscription">Subscription</option></select></label><label>Duration <span class="field-required">*</span><input type="number" name="duration" min="1" max="3650" value="14" required></label><label>Duration unit<select name="unit" data-access-unit><option value="days">Days</option><option value="months">Months (subscriptions only)</option></select></label></div><p class="help">Trials use days. Subscriptions can use days or calendar months. Share the login password through a private channel.</p><% } %>
-      <div class="form-actions"><button class="button primary" type="submit"><span class="button-text"><%= user ? 'Save changes' : 'Create account' %></span><span aria-hidden="true">→</span><span class="button-spinner" aria-hidden="true"></span></button><a class="button secondary" href="/admin">Cancel</a></div>
+      <div class="form-grid"><label>Display name / lab name <span class="field-required">*</span><input
+            name="display_name" required maxlength="120" minlength="2" placeholder="e.g. Central Diagnostic Lab"
+            value="<%= user ? user.display_name : '' %>"></label><label>Email for login <span
+            class="field-required">*</span><input type="email" name="email" required maxlength="254" autocomplete="off"
+            placeholder="name@example.com" value="<%= user ? user.email : '' %>"></label><label>Account type<select
+            name="account_type">
+            <option value="person" <%=user?.account_type==='person' ? 'selected' : '' %>>Individual</option>
+            <option value="lab" <%=user?.account_type==='lab' ? 'selected' : '' %>>Laboratory</option>
+          </select></label><label>
+          <%= user ? 'New password (optional)' : 'Initial password (12+ characters)' %><input type="password"
+              name="password" minlength="12" maxlength="72" autocomplete="new-password"
+              placeholder="<%= user ? 'Leave blank to keep current password' : 'Create a secure password' %>" <%=user
+              ? '' : 'required' %>>
+        </label></div>
+      <% if (user) { %>
+        <div class="soft-divider"></div><label class="check"><input type="checkbox" name="is_active" value="true"
+            <%=user.is_active ? 'checked' : '' %>><span><strong>Account enabled</strong><small>Turn this off to block
+              future sign-ins immediately.</small></span></label>
+        <p class="help">Changing the password or disabling the account revokes existing sessions. Manage
+          trial/subscription dates separately on the <a href="/admin/users/<%= encodeURIComponent(user.id) %>/plan">plan
+            page →</a>.</p>
+        <% } else { %>
+          <div class="soft-divider"></div>
+          <div class="form-intro minor"><span class="section-icon">◷</span>
+            <div>
+              <h2>Initial access</h2>
+              <p>Choose the plan and duration that should apply immediately after creation.</p>
+            </div>
+          </div>
+          <div class="form-grid"><label>Plan type<select name="access_plan" data-access-plan>
+                <option value="trial">Trial</option>
+                <option value="subscription">Subscription</option>
+              </select></label><label>Duration <span class="field-required">*</span><input type="number" name="duration"
+                min="1" max="3650" value="14" required></label><label>Duration unit<select name="unit" data-access-unit>
+                <option value="days">Days</option>
+                <option value="months">Months (subscriptions only)</option>
+              </select></label></div>
+          <p class="help">Trials use days. Subscriptions can use days or calendar months. Share the login password
+            through a private channel.</p>
+          <% } %>
+            <div class="form-actions"><button class="button primary" type="submit"><span class="button-text">
+                  <%= user ? 'Save changes' : 'Create account' %>
+                </span><span aria-hidden="true">→</span><span class="button-spinner"
+                  aria-hidden="true"></span></button><a class="button secondary" href="/admin">Cancel</a></div>
     </form>
   </section>
-  <aside class="aside-panel glass"><div class="aside-illustration" aria-hidden="true">!</div><p class="eyebrow">QUICK CHECK</p><h3>Before you <span>save.</span></h3><p>Use this checklist to prevent avoidable access problems.</p><div class="aside-list"><span>✓ Confirm the email address is correct</span><span>✓ Use a unique password of 12+ characters</span><span>✓ Choose Individual vs Laboratory correctly</span><span>✓ Confirm the initial trial/subscription duration</span></div></aside>
+  <aside class="aside-panel glass">
+    <div class="aside-illustration" aria-hidden="true">!</div>
+    <p class="eyebrow">QUICK CHECK</p>
+    <h3>Before you <span>save.</span></h3>
+    <p>Use this checklist to prevent avoidable access problems.</p>
+    <div class="aside-list"><span>✓ Confirm the email address is correct</span><span>✓ Use a unique password of 12+
+        characters</span><span>✓ Choose Individual vs Laboratory correctly</span><span>✓ Confirm the initial
+        trial/subscription duration</span></div>
+  </aside>
 </div>
 <%- include('footer') %>

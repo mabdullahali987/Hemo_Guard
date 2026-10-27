@@ -1,16 +1,93 @@
 <%- include('header') %>
 <section class="page-heading page-heading-hero">
-  <div><p class="eyebrow">CLINICAL HISTORY · RESTRICTED</p><h1>Patient <span>reports.</span></h1>
-    <p>All patient-linked screenings, with their originating laboratory or individual account. Every access is audited.</p></div>
-  <div class="heading-actions"><a class="button secondary" href="/admin/reports">← Usage overview</a><a class="button ghost" href="/admin/patient-reports">↻ Refresh</a></div>
+  <div>
+    <p class="eyebrow">CLINICAL HISTORY · RESTRICTED</p>
+    <h1>Patient <span>reports.</span></h1>
+    <p>All patient-linked screenings, with their originating laboratory or individual account. Every access is audited.
+    </p>
+  </div>
+  <div class="heading-actions"><a class="button secondary" href="/admin/reports">← Usage overview</a><a
+      class="button ghost" href="/admin/patient-reports">↻ Refresh</a></div>
 </section>
-<section class="metrics metrics-focus"><article class="metric metric-violet"><div class="metric-header"><span class="metric-icon">▥</span></div><span class="metric-label">Patient-linked reports</span><strong><%= total %></strong></article></section>
-<section class="panel table-panel glass"><div class="panel-heading"><div><p class="eyebrow">PRIVATE MEDICAL RECORDS</p><h2>Latest clinical reports</h2><p>Authorized superadmin only · UTC timestamps · read-only</p></div><span class="count-chip"><%= reports.length %> on page</span></div>
-<div class="table-tools"><label class="search-field" for="clinical-search"><span aria-hidden="true">⌕</span><input type="search" id="clinical-search" data-table-search="clinical-table" placeholder="Search patient or account…" autocomplete="off"><span class="key-tip">SEARCH</span></label></div>
-<div class="table-scroll"><table id="clinical-table"><thead><tr><th>Patient / ID</th><th>Originating account</th><th>Type</th><th>Completed (UTC)</th><th>Report</th></tr></thead><tbody>
-<% for (const r of reports) { %><tr><td><div class="person-cell"><span class="avatar" aria-hidden="true">◉</span><span><strong><%= r.patient_name_snapshot %></strong><small><%= r.public_id %></small></span></div></td><td><strong><%= r.account_name_snapshot %></strong><br><small><%= r.account_type_snapshot==='lab'?'Laboratory':'Individual' %> · <%= r.account_id %></small></td><td><span class="type-pill"><%= r.mode==='image'?'Scanned':'Manual' %></span></td><td class="date-cell"><%= new Date(r.created_at).toLocaleString('en-GB',{timeZone:'UTC'}) %></td><td><a class="history-button" href="/admin/patient-reports/<%= encodeURIComponent(r.id) %>"><span>View record</span><span class="history-arrow">→</span></a></td></tr><% } %>
-<% if (!reports.length) { %><tr class="empty-row"><td colspan="5"><div class="empty-state"><span>▥</span><strong>No patient-linked reports yet</strong><p>Existing usage-only reports remain in the original activity view.</p></div></td></tr><% } %>
-</tbody></table></div><div class="search-empty" data-empty-for="clinical-table" hidden>No matching report on this page.</div>
-<div class="form-actions pagination"><% if (offset>0) { %><a class="button secondary small" href="/admin/patient-reports?offset=<%= Math.max(0,offset-limit) %>">← Newer</a><% } %><% if (offset+reports.length<total) { %><a class="button secondary small" href="/admin/patient-reports?offset=<%= offset+limit %>">Older →</a><% } %></div>
-<p class="table-footnote">Patient details are sensitive. Do not use this view outside approved administrative duties. Access is logged.</p></section>
+<section class="metrics metrics-focus">
+  <article class="metric metric-violet">
+    <div class="metric-header"><span class="metric-icon">▥</span></div><span class="metric-label">Patient-linked
+      reports</span><strong>
+      <%= total %>
+    </strong>
+  </article>
+</section>
+<section class="panel table-panel glass">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">PRIVATE MEDICAL RECORDS</p>
+      <h2>Latest clinical reports</h2>
+      <p>Authorized superadmin only · UTC timestamps · read-only</p>
+    </div><span class="count-chip">
+      <%= reports.length %> on page
+    </span>
+  </div>
+  <div class="table-tools"><label class="search-field" for="clinical-search"><span aria-hidden="true">⌕</span><input
+        type="search" id="clinical-search" data-table-search="clinical-table" placeholder="Search patient or account…"
+        autocomplete="off"><span class="key-tip">SEARCH</span></label></div>
+  <div class="table-scroll">
+    <table id="clinical-table">
+      <thead>
+        <tr>
+          <th>Patient / ID</th>
+          <th>Originating account</th>
+          <th>Type</th>
+          <th>Completed (UTC)</th>
+          <th>Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const r of reports) { %>
+          <tr>
+            <td>
+              <div class="person-cell"><span class="avatar" aria-hidden="true">◉</span><span><strong>
+                    <%= r.patient_name_snapshot %>
+                  </strong><small>
+                    <%= r.public_id %>
+                  </small></span></div>
+            </td>
+            <td><strong>
+                <%= r.account_name_snapshot %>
+              </strong><br><small>
+                <%= r.account_type_snapshot==='lab' ?'Laboratory':'Individual' %> · <%= r.account_id %>
+              </small></td>
+            <td><span class="type-pill">
+                <%= r.mode==='image' ?'Scanned':'Manual' %>
+              </span></td>
+            <td class="date-cell">
+              <%= new Date(r.created_at).toLocaleString('en-GB',{timeZone:'UTC'}) %>
+            </td>
+            <td><a class="history-button" href="/admin/patient-reports/<%= encodeURIComponent(r.id) %>"><span>View
+                  record</span><span class="history-arrow">→</span></a></td>
+          </tr>
+          <% } %>
+            <% if (!reports.length) { %>
+              <tr class="empty-row">
+                <td colspan="5">
+                  <div class="empty-state"><span>▥</span><strong>No patient-linked reports yet</strong>
+                    <p>Existing usage-only reports remain in the original activity view.</p>
+                  </div>
+                </td>
+              </tr>
+              <% } %>
+      </tbody>
+    </table>
+  </div>
+  <div class="search-empty" data-empty-for="clinical-table" hidden>No matching report on this page.</div>
+  <div class="form-actions pagination">
+    <% if (offset>0) { %><a class="button secondary small"
+        href="/admin/patient-reports?offset=<%= Math.max(0,offset-limit) %>">← Newer</a>
+      <% } %>
+        <% if (offset+reports.length<total) { %><a class="button secondary small"
+            href="/admin/patient-reports?offset=<%= offset+limit %>">Older →</a>
+          <% } %>
+  </div>
+  <p class="table-footnote">Patient details are sensitive. Do not use this view outside approved administrative duties.
+    Access is logged.</p>
+</section>
 <%- include('footer') %>

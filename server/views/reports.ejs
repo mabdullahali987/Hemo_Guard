@@ -1,8 +1,116 @@
 <%- include('header') %>
-<section class="page-heading page-heading-hero"><div><p class="eyebrow">REPORT ACTIVITY</p><h1>Usage by <span>account.</span></h1><p>Compare completed report activity across individual users and laboratories, including archived accounts.</p></div><div class="heading-actions"><a class="button secondary" href="/admin/reports">↻ Refresh counts</a><a class="button primary" href="/admin/patient-reports">Patient reports →</a><a class="button ghost" href="/admin/audit">Audit trail ↗</a></div></section>
-<section class="metrics metrics-focus" aria-label="Report totals"><article class="metric metric-violet"><div class="metric-header"><span class="metric-icon">▥</span><span class="metric-gleam">↗</span></div><span class="metric-label">Reports generated</span><strong><%= summary.reports_total %></strong></article><article class="metric metric-cyan"><div class="metric-header"><span class="metric-icon">▧</span><span class="metric-gleam">↗</span></div><span class="metric-label">Scanned reports</span><strong><%= summary.reports_scanned %></strong></article><article class="metric metric-rose"><div class="metric-header"><span class="metric-icon">≡</span><span class="metric-gleam">↗</span></div><span class="metric-label">Manual reports</span><strong><%= summary.reports_manual %></strong></article><article class="metric metric-green"><div class="metric-header"><span class="metric-icon">◈</span><span class="metric-gleam">↗</span></div><span class="metric-label">Accounts tracked</span><strong><%= accounts.length %></strong></article></section>
-<section class="panel table-panel glass"><div class="panel-heading"><div><p class="eyebrow">ACCOUNT BREAKDOWN</p><h2>Reports by user or laboratory</h2><p>Sorted by total completed reports, highest first.</p></div><span class="count-chip">De-identified insights</span></div><div class="table-tools"><label class="search-field" for="reports-search"><span aria-hidden="true">⌕</span><input type="search" id="reports-search" data-table-search="report-usage-table" placeholder="Search laboratory or user…" autocomplete="off"><span class="key-tip">SEARCH</span></label></div><div class="table-scroll"><table id="report-usage-table"><thead><tr><th>Account / email</th><th>Type</th><th>Reports</th><th>Scanned</th><th>Manual</th><th>Latest report (UTC)</th><th>History</th></tr></thead><tbody>
-<% for (const a of accounts) { %><tr><td><div class="person-cell"><span class="avatar <%= a.account_type==='lab' ? 'avatar-lab' : '' %>" aria-hidden="true"><%= a.account_type==='lab' ? '▦' : '◉' %></span><span><strong><%= a.display_name %></strong><small><%= a.email %></small><% if (a.is_deleted) { %><small class="state-note">Archived account</small><% } %></span></div></td><td><span class="type-pill"><%= a.account_type==='lab' ? 'Laboratory' : 'Individual' %></span></td><td><strong class="table-number"><%= a.reports_count %></strong></td><td><%= a.scans_count %></td><td><%= a.manual_count %></td><td class="date-cell"><%= a.last_report_at ? new Date(a.last_report_at).toLocaleString('en-GB',{timeZone:'UTC'}) : 'No reports yet' %></td><td><a class="history-button" href="/admin/reports/<%= encodeURIComponent(a.id) %>"><span>View history</span><span class="history-arrow" aria-hidden="true">→</span></a></td></tr><% } %>
-<% if (!accounts.length) { %><tr class="empty-row"><td colspan="7"><div class="empty-state"><span>▥</span><strong>Awaiting your first report</strong><p>Completed reports will appear here as soon as accounts generate them.</p></div></td></tr><% } %>
-</tbody></table></div><div class="search-empty" data-empty-for="report-usage-table" hidden>No accounts match your search.</div><p class="table-footnote">One laboratory login represents the lab as a whole, not individual staff members. This page shows usage counters only. Patient-linked details are in the restricted Patient reports view; original scan images are not retained on this server.</p></section>
+<section class="page-heading page-heading-hero">
+    <div>
+        <p class="eyebrow">REPORT ACTIVITY</p>
+        <h1>Usage by <span>account.</span></h1>
+        <p>Compare completed report activity across individual users and laboratories, including archived accounts.</p>
+    </div>
+    <div class="heading-actions"><a class="button secondary" href="/admin/reports">↻ Refresh counts</a><a
+            class="button primary" href="/admin/patient-reports">Patient reports →</a><a class="button ghost"
+            href="/admin/audit">Audit trail ↗</a></div>
+</section>
+<section class="metrics metrics-focus" aria-label="Report totals">
+    <article class="metric metric-violet">
+        <div class="metric-header"><span class="metric-icon">▥</span><span class="metric-gleam">↗</span></div><span
+            class="metric-label">Reports generated</span><strong>
+            <%= summary.reports_total %>
+        </strong>
+    </article>
+    <article class="metric metric-cyan">
+        <div class="metric-header"><span class="metric-icon">▧</span><span class="metric-gleam">↗</span></div><span
+            class="metric-label">Scanned reports</span><strong>
+            <%= summary.reports_scanned %>
+        </strong>
+    </article>
+    <article class="metric metric-rose">
+        <div class="metric-header"><span class="metric-icon">≡</span><span class="metric-gleam">↗</span></div><span
+            class="metric-label">Manual reports</span><strong>
+            <%= summary.reports_manual %>
+        </strong>
+    </article>
+    <article class="metric metric-green">
+        <div class="metric-header"><span class="metric-icon">◈</span><span class="metric-gleam">↗</span></div><span
+            class="metric-label">Accounts tracked</span><strong>
+            <%= accounts.length %>
+        </strong>
+    </article>
+</section>
+<section class="panel table-panel glass">
+    <div class="panel-heading">
+        <div>
+            <p class="eyebrow">ACCOUNT BREAKDOWN</p>
+            <h2>Reports by user or laboratory</h2>
+            <p>Sorted by total completed reports, highest first.</p>
+        </div><span class="count-chip">De-identified insights</span>
+    </div>
+    <div class="table-tools"><label class="search-field" for="reports-search"><span aria-hidden="true">⌕</span><input
+                type="search" id="reports-search" data-table-search="report-usage-table"
+                placeholder="Search laboratory or user…" autocomplete="off"><span class="key-tip">SEARCH</span></label>
+    </div>
+    <div class="table-scroll">
+        <table id="report-usage-table">
+            <thead>
+                <tr>
+                    <th>Account / email</th>
+                    <th>Type</th>
+                    <th>Reports</th>
+                    <th>Scanned</th>
+                    <th>Manual</th>
+                    <th>Latest report (UTC)</th>
+                    <th>History</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% for (const a of accounts) { %>
+                    <tr>
+                        <td>
+                            <div class="person-cell"><span
+                                    class="avatar <%= a.account_type==='lab' ? 'avatar-lab' : '' %>" aria-hidden="true">
+                                    <%= a.account_type==='lab' ? '▦' : '◉' %>
+                                </span><span><strong>
+                                        <%= a.display_name %>
+                                    </strong><small>
+                                        <%= a.email %>
+                                    </small>
+                                    <% if (a.is_deleted) { %><small class="state-note">Archived account</small>
+                                        <% } %>
+                                </span></div>
+                        </td>
+                        <td><span class="type-pill">
+                                <%= a.account_type==='lab' ? 'Laboratory' : 'Individual' %>
+                            </span></td>
+                        <td><strong class="table-number">
+                                <%= a.reports_count %>
+                            </strong></td>
+                        <td>
+                            <%= a.scans_count %>
+                        </td>
+                        <td>
+                            <%= a.manual_count %>
+                        </td>
+                        <td class="date-cell">
+                            <%= a.last_report_at ? new Date(a.last_report_at).toLocaleString('en-GB',{timeZone:'UTC'})
+                                : 'No reports yet' %>
+                        </td>
+                        <td><a class="history-button" href="/admin/reports/<%= encodeURIComponent(a.id) %>"><span>View
+                                    history</span><span class="history-arrow" aria-hidden="true">→</span></a></td>
+                    </tr>
+                    <% } %>
+                        <% if (!accounts.length) { %>
+                            <tr class="empty-row">
+                                <td colspan="7">
+                                    <div class="empty-state"><span>▥</span><strong>Awaiting your first report</strong>
+                                        <p>Completed reports will appear here as soon as accounts generate them.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <div class="search-empty" data-empty-for="report-usage-table" hidden>No accounts match your search.</div>
+    <p class="table-footnote">One laboratory login represents the lab as a whole, not individual staff members. This
+        page shows usage counters only. Patient-linked details are in the restricted Patient reports view; original scan
+        images are not retained on this server.</p>
+</section>
 <%- include('footer') %>
