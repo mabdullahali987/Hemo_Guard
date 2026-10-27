@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hemo_guard/app/routes/app_pages.dart';
@@ -13,7 +14,7 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) => UserGlassFrame(
-    title: 'Dashboard', subtitle: 'HEMOGUARD  /  WORKSPACE', selectedIndex: 0,
+    title: 'Dashboard', subtitle: 'HEMOGUARD', selectedIndex: 0,
     child: LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > 680;
       return SingleChildScrollView(
@@ -85,11 +86,8 @@ class _Welcome extends StatelessWidget {
       ])),
       const SizedBox(width: 13),
       Container(width: wide ? 77 : 62, height: wide ? 77 : 62,
-        decoration: BoxDecoration(gradient: UserGlassColors.gradient,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [BoxShadow(color: UserGlassColors.violet.withOpacity(.23),
-            blurRadius: 19, offset: const Offset(0, 8))]),
-        child: const Icon(Icons.monitor_heart_outlined, color: Colors.white, size: 32)),
+
+        child: Icon(Icons.waving_hand_sharp, color: Colors.grey)),
     ]),
   );
 }

@@ -33,6 +33,7 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/img.png
     - assets/xgboast.json
 
 

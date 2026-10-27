@@ -181,7 +181,6 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
                                     height: 74,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(23),
-                                      gradient: _Pearl.gradient,
                                       boxShadow: [
                                         BoxShadow(
                                           color: _Pearl.violet.withOpacity(.25),
@@ -190,11 +189,7 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(
-                                      Icons.monitor_heart_outlined,
-                                      color: Colors.white,
-                                      size: 38,
-                                    ),
+                                    child: Image.asset("assets/img.png")
                                   ),
                                 ),
                                 const SizedBox(height: 19),

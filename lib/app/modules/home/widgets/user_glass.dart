@@ -256,10 +256,10 @@ class UserGlassFrame extends StatelessWidget {
                 const SizedBox(width: 10),
               ] else ...[
                 Container(width: 45, height: 45,
-                  decoration: BoxDecoration(gradient: UserGlassColors.gradient,
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [BoxShadow(color: UserGlassColors.violet.withOpacity(.24), blurRadius: 16, offset: const Offset(0, 7))]),
-                  child: const Icon(Icons.monitor_heart_outlined, color: Colors.white, size: 25)),
+                  child: Image.asset("assets/img.png")),
                 const SizedBox(width: 12),
               ],
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

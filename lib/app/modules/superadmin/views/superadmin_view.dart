@@ -285,7 +285,6 @@ class _SuperadminViewState extends State<SuperadminView> with SingleTickerProvid
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          gradient: _AdminColors.accent,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
@@ -294,12 +293,11 @@ class _SuperadminViewState extends State<SuperadminView> with SingleTickerProvid
                               offset: const Offset(0, 7),
                             ),
                           ],
-                        ),
-                        child: const Icon(
-                          Icons.monitor_heart_outlined,
-                          color: Colors.white,
-                          size: 26,
-                        ),
+                        ), // Adds a nice breathing room inside the gradient box
+                          child: Image.asset(
+                            "assets/img.png",
+                            fit: BoxFit.fill,
+                        )
                       ),
                       const SizedBox(width: 12),
                       Expanded(
