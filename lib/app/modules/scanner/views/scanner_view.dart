@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 
 import 'package:hemo_guard/app/theme/app_theme.dart';
+import 'package:hemo_guard/app/modules/home/widgets/user_glass.dart';
 import 'package:hemo_guard/app/data/cbc_parser.dart';
 import '../controllers/scanner_controller.dart';
 import '../widgets/consent_gate.dart';
@@ -25,7 +26,8 @@ class ScannerView extends GetView<ScannerController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return UserGlassScope(child: Scaffold(
+      backgroundColor: Colors.transparent,
       // The keyboard must NOT resize the body: the no-scroll form divides the
       // available height with Expanded rows, so shrinking it when the keyboard
       // opens would squeeze/overflow the grid. Keeping it fixed also stops the
@@ -33,6 +35,8 @@ class ScannerView extends GetView<ScannerController> {
       // keyboard opening and instantly closing on some phones).
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
         title: Obx(() =>
             Text(controller.isText.value ? 'Enter Values' : 'Scan Report')),
       ),
@@ -46,7 +50,7 @@ class ScannerView extends GetView<ScannerController> {
           return showCamera ? const _CameraView() : const _FormView();
         }),
       ),
-    );
+    ));
   }
 }
 
@@ -82,10 +86,10 @@ class _CameraView extends GetView<ScannerController> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Point at a CBC report',
+                    Text('Point at a CBC report',
                         textAlign: TextAlign.center,
                         style:
-                            TextStyle(fontSize: 15, color: AppColors.muted)),
+                            TextStyle(fontSize: 15, color: UserGlassColors.muted)),
                     const SizedBox(height: 20),
                     _captureButton(),
                     const SizedBox(height: 14),
@@ -101,8 +105,8 @@ class _CameraView extends GetView<ScannerController> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Text('Point at a CBC report',
-                style: TextStyle(fontSize: 15, color: AppColors.muted)),
+            Text('Point at a CBC report',
+                style: TextStyle(fontSize: 15, color: UserGlassColors.muted)),
             const SizedBox(height: 16),
             Expanded(child: _preview()),
             const SizedBox(height: 20),
@@ -234,14 +238,14 @@ class _FormView extends GetView<ScannerController> {
       if (controller.isProcessing.value) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             SizedBox(width: 10),
             Text('Reading report…',
-                style: TextStyle(fontSize: 15, color: AppColors.muted)),
+                style: TextStyle(fontSize: 15, color: UserGlassColors.muted)),
           ],
         );
       }
@@ -250,7 +254,7 @@ class _FormView extends GetView<ScannerController> {
             ? 'Enter your CBC values'
             : 'Review the scanned values',
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 15, color: AppColors.muted),
+        style: TextStyle(fontSize: 15, color: UserGlassColors.muted),
       );
     });
   }
@@ -287,14 +291,14 @@ class _FormView extends GetView<ScannerController> {
   }
 
   Widget _disclaimer() {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.info_outline, size: 14, color: AppColors.muted),
+        Icon(Icons.info_outline, size: 14, color: UserGlassColors.muted),
         SizedBox(width: 6),
         Flexible(
           child: Text('Screening aid only — not a diagnosis.',
-              style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              style: TextStyle(fontSize: 12, color: UserGlassColors.muted)),
         ),
       ],
     );
@@ -336,9 +340,9 @@ class _FieldCell extends GetView<ScannerController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: UserGlassColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: UserGlassColors.border),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -351,14 +355,14 @@ class _FieldCell extends GetView<ScannerController> {
                       fontSize: 14, fontWeight: FontWeight.w700)),
               const Spacer(),
               Text(param.unit,
-                  style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                  style: TextStyle(fontSize: 10, color: UserGlassColors.muted)),
             ],
           ),
           const SizedBox(height: 4),
           _ValueField(param: param),
           const SizedBox(height: 3),
           Text('normal ${_typicalRange[param.short] ?? ''}',
-              style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+              style: TextStyle(fontSize: 10, color: UserGlassColors.muted)),
         ],
       ),
     );
@@ -452,10 +456,10 @@ class _ResultBanner extends GetView<ScannerController> {
             if (controller.patientPublicId.value.isNotEmpty) ...[
               const SizedBox(height:10),
               Text('Patient ID: ${controller.patientPublicId.value}',
-                style:const TextStyle(fontSize:13,fontWeight:FontWeight.w700)),
+                style:TextStyle(fontSize:13,fontWeight:FontWeight.w700,color:color)),
               const SizedBox(height:4),
-              const Text('Saved as a new report. Previous records are unchanged.',
-                textAlign:TextAlign.center,style:TextStyle(fontSize:11)),
+               Text('Saved as a new report. Previous records are unchanged.',
+                textAlign:TextAlign.center,style:TextStyle(fontSize:11,color:color)),
             ],
           ],
         ),
@@ -497,10 +501,10 @@ class _ScanLineState extends State<_ScanLine>
           height: 2,
           margin: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
-            color: AppColors.brand.withValues(alpha: 0.7),
+            color: UserGlassColors.violet.withValues(alpha: 0.7),
             boxShadow: [
               BoxShadow(
-                  color: AppColors.brand.withValues(alpha: 0.4), blurRadius: 8),
+                  color: UserGlassColors.violet.withValues(alpha: 0.4), blurRadius: 8),
             ],
           ),
         ),

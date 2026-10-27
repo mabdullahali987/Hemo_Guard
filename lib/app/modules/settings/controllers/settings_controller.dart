@@ -5,7 +5,7 @@ import '../../../data/settings_store.dart';
 
 /// Drives the settings screen and keeps the [SettingsStore] in sync.
 class SettingsController extends GetxController {
-  final SettingsStore _store = SettingsStore();
+  final SettingsStore _store = SettingsStore.shared;
 
   final Rx<AppSettings> settings = const AppSettings().obs;
 
