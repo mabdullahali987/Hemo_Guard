@@ -46,6 +46,14 @@ if (sqliteTest) {
   // Counts and integer SQL aggregates need to preserve the original API's
   // numeric JSON types. These counters are far below JS's safe integer limit.
   types.setTypeParser(20, value => Number(value));
+  // Supabase's managed root CA is supplied as base64 in Vercel's environment.
+  // The certificate is public trust material, not a database credential.
+  // Keep certificate and hostname verification enabled.
+  const caBase64 = process.env.DATABASE_CA_CERT_BASE64;
+  const ca = caBase64 ? Buffer.from(caBase64, 'base64').toString('utf8') : undefined;
+  if (caBase64 && (!ca.includes('-----BEGIN CERTIFICATE-----') || !ca.includes('-----END CERTIFICATE-----'))) {
+    throw new Error('Invalid DATABASE_CA_CERT_BASE64: expected a base64-encoded PEM CA certificate');
+  }
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 1, // each warm Vercel function instance owns at most one connection
@@ -53,7 +61,9 @@ if (sqliteTest) {
     idleTimeoutMillis: 10000,
     // Require TLS and verify hostname/certificate by default.
     // Local Postgres development may explicitly set DATABASE_SSL=disable.
-    ssl: process.env.DATABASE_SSL === 'disable' ? false : { rejectUnauthorized: true },
+    ssl: process.env.DATABASE_SSL === 'disable'
+      ? false
+      : { rejectUnauthorized: true, ...(ca ? { ca } : {}) },
   });
   pool.on('error', err => console.error('Idle database connection error:', err));
   function placeholders(statement) {
