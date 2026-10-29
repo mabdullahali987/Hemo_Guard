@@ -92,8 +92,7 @@
                             <%= a.last_report_at ? new Date(a.last_report_at).toLocaleString('en-GB',{timeZone:'UTC'})
                                 : 'No reports yet' %>
                         </td>
-                        <td><a class="history-button" href="/admin/reports/<%= encodeURIComponent(a.id) %>"><span>View
-                                    history</span><span class="history-arrow" aria-hidden="true">→</span></a></td>
+                        <td><a class="history-button" href="/admin/reports/<%= encodeURIComponent(a.id) %>"><span>View history</span><span class="history-arrow" aria-hidden="true">→</span></a></td>
                     </tr>
                     <% } %>
                         <% if (!accounts.length) { %>

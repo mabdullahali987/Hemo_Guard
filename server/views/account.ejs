@@ -36,6 +36,13 @@
               placeholder="<%= user ? 'Leave blank to keep current password' : 'Create a secure password' %>" <%=user
               ? '' : 'required' %>>
         </label></div>
+      <div class="soft-divider"></div>
+      <input type="hidden" name="can_view_results" value="false">
+      <label class="check"><input type="checkbox" name="can_view_results" value="true"
+          <%=user?.can_view_results ? 'checked' : '' %>>
+        <span><strong>Allow viewing screening results</strong>
+          <small>Off: screenings still save to the backend, but only superadmin can view the prediction. Default: off.</small></span>
+      </label>
       <% if (user) { %>
         <div class="soft-divider"></div><label class="check"><input type="checkbox" name="is_active" value="true"
             <%=user.is_active ? 'checked' : '' %>><span><strong>Account enabled</strong><small>Turn this off to block

@@ -51,6 +51,7 @@
           <th>Account</th>
           <th>Type</th>
           <th>Access status</th>
+          <th>Results</th>
           <th>Expires (UTC)</th>
           <th>Reports</th>
           <th>Manage</th>
@@ -77,6 +78,7 @@
                   class="pill-dot"></span>
                 <%= u.access_plan %> · <%= u.status %>
               </span></td>
+            <td><span class="type-pill"><%= u.can_view_results ? 'Can view' : 'Admin only' %></span></td>
             <td class="date-cell">
               <%= u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleString('en-GB',{timeZone:'UTC'}) : '—' %>
             </td>
@@ -96,7 +98,7 @@
           <% } %>
             <% if (!users.length) { %>
               <tr class="empty-row">
-                <td colspan="6">
+                <td colspan="7">
                   <div class="empty-state"><span aria-hidden="true">✧</span><strong>No accounts yet</strong>
                     <p>Create the first user or laboratory account to get started.</p><a href="/admin/users/new"
                       class="button primary small">Create account →</a>

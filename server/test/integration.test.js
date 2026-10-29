@@ -28,7 +28,7 @@ const json = async (method, url, token, body) => {
 };
 test.before(async () => {
   const at = core.now();
-  core.db.prepare(`INSERT INTO users(id,display_name,email,account_type,password_hash,is_active,created_at,updated_at)
+  await core.db.prepare(`INSERT INTO users(id,display_name,email,account_type,password_hash,is_active,created_at,updated_at)
      VALUES(?,?,?,?,?,1,?,?)`).run(randomUUID(), 'Admin', 'admin@test.invalid', 'superadmin',
      bcrypt.hashSync('example-pass-12345', 12), at, at);
   server = app.listen(0, '127.0.0.1');
@@ -37,7 +37,7 @@ test.before(async () => {
 });
 test.after(async () => {
   if (server) await new Promise(resolve => server.close(resolve));
-  core.db.close();
+  await core.db.close();
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 test('unauthorized API access is denied', async () => {
@@ -124,7 +124,7 @@ test('stop trial blocks report; subscription conversion and expiry enforced', as
   assert.equal(state.data.user.status,'active');
   report = await json('POST','/api/reports/authorize',userToken,{mode:'text'});
   assert.equal(report.status,201);
-  core.db.prepare('UPDATE users SET plan_expires_at=? WHERE id=?').run('2020-01-01T00:00:00.000Z',userId);
+  await core.db.prepare('UPDATE users SET plan_expires_at=? WHERE id=?').run('2020-01-01T00:00:00.000Z',userId);
   const blockedCompletion = await json('POST',`/api/reports/${report.data.authorization_id}/complete`,userToken);
   assert.equal(blockedCompletion.status,403);
   const stats = await json('GET','/api/admin/summary',adminToken);

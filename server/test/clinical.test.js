@@ -17,8 +17,8 @@ async function req(method,path,token,body) {
   const r=await fetch(origin+path,{method,headers:{...(token?{authorization:`Bearer ${token}`}:{}) , ...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
   const raw=await r.text();return {status:r.status,data:raw?JSON.parse(raw):{}};
 }
-async function createLogin(name,email,type){
-  const acc=core.createUser({display_name:name,email,account_type:type,password:'secret-password-12345',access_plan:'trial',duration:30,unit:'days'},adminId);
+async function createLogin(name,email,type,canViewResults=false){
+  const acc=await core.createUser({display_name:name,email,account_type:type,password:'secret-password-12345',access_plan:'trial',duration:30,unit:'days',can_view_results:canViewResults},adminId);
   const logged=await req('POST','/api/auth/login',null,{email,password:'secret-password-12345'});
   assert.equal(logged.status,200);return {id:acc.id,token:logged.data.token};
 }
@@ -37,16 +37,16 @@ async function save(token,existing,reportNo){
 }
 test.before(async()=>{
   const at=core.now();
-  core.db.prepare(`INSERT INTO users(id,display_name,email,account_type,password_hash,is_active,created_at,updated_at)
+  await core.db.prepare(`INSERT INTO users(id,display_name,email,account_type,password_hash,is_active,created_at,updated_at)
     VALUES(?,?,?,?,?,1,?,?)`).run(randomUUID(),'Administrator','admin-patients@test.invalid','superadmin',bcrypt.hashSync('admin-pass-12345',12),at,at);
   server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
   origin=`http://127.0.0.1:${server.address().port}`;
   const adminLogin=await req('POST','/api/auth/login',null,{email:'admin-patients@test.invalid',password:'admin-pass-12345'});
   admin=adminLogin.data.token;adminId=adminLogin.data.user.id;
-  ({id:labId,token:lab}=await createLogin('City Laboratory','city@test.invalid','lab'));
+  ({id:labId,token:lab}=await createLogin('City Laboratory','city@test.invalid','lab',true));
   ({id:otherId,token:other}=await createLogin('Other Clinic','other@test.invalid','person'));
 });
-test.after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));core.db.close();fs.rmSync(dir,{recursive:true,force:true});});
+test.after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));await core.db.close();fs.rmSync(dir,{recursive:true,force:true});});
 test('consent cannot be bypassed; automatic patient and first report are saved',async()=>{
   const current=await req('GET','/api/consent/current',lab);
   assert.equal(current.status,200);
@@ -59,7 +59,7 @@ test('consent cannot be bypassed; automatic patient and first report are saved',
   assert.equal(saved.data.report.patient_name_snapshot,patient.name);
   assert.match(saved.data.patient.public_id,/^HG-P-[A-Z0-9]+$/);
   assert.equal(saved.data.report.cbc.mcv,65);
-  assert.equal(core.summary().reports_total,1);
+  assert.equal((await core.summary()).reports_total,1);
 });
 test('returning patient reuses ID; past reports are append-only',async()=>{
   const search=await req('POST','/api/patients/match',lab,patient);
@@ -76,10 +76,10 @@ test('returning patient reuses ID; past reports are append-only',async()=>{
   assert.equal(after.data.reports.length,2);
   assert.equal(after.data.reports[1].id,before.data.reports[0].id);
   assert.equal(after.data.reports[1].cbc.mcv,65);
-  assert.equal(core.summary().reports_total,2);
+  assert.equal((await core.summary()).reports_total,2);
   const duplicate=await save(lab,id,'LAB-CBC-002');
   assert.equal(duplicate.status,409);
-  assert.equal(core.summary().reports_total,2);
+  assert.equal((await core.summary()).reports_total,2);
 });
 test('other accounts cannot read patient records or clinical details',async()=>{
   const owned=await req('GET','/api/patients',lab);
@@ -109,4 +109,43 @@ test('superadmin can see originating account and download patient PDF',async()=>
   assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
   const audit=await req('GET','/api/admin/audit',admin);
   assert.ok(audit.data.events.some(e=>e.action==='patient.report_viewed'));
+});
+
+test('admin-only reports stay saved and hidden until superadmin grants viewing rights',async()=>{
+  const secret=await createLogin('Restricted Lab','restricted@test.invalid','lab');
+  const me=await req('GET','/api/auth/me',secret.token);
+  assert.equal(me.data.user.can_view_results,false);
+  const saved=await save(secret.token,null,'SEC-CBC-001');
+  assert.equal(saved.status,201,JSON.stringify(saved.data));
+  assert.equal(saved.data.result_visible,false);
+  assert.equal(saved.data.report.result_visible,false);
+  assert.equal('prediction' in saved.data.report,false);
+  assert.equal('cbc' in saved.data.report,false);
+  const owned=await req('GET','/api/patients',secret.token);
+  assert.equal(owned.data.patients[0].reports_count,1);
+  const patientId=owned.data.patients[0].id;
+  const first=await req('GET',`/api/patients/${patientId}/reports`,secret.token);
+  assert.equal(first.status,200);
+  assert.equal(first.data.reports.length,1);
+  assert.equal(first.data.reports[0].result_visible,false);
+  assert.equal('prediction' in first.data.reports[0],false);
+  assert.equal('cbc' in first.data.reports[0],false);
+  assert.equal((await req('GET',`/api/clinical-reports/${saved.data.report.id}`,secret.token)).status,403);
+  assert.equal((await req('PATCH',`/api/admin/users/${secret.id}`,secret.token,{can_view_results:true})).status,403);
+  const adminReport=await req('GET',`/api/admin/clinical-reports/${saved.data.report.id}`,admin);
+  assert.equal(adminReport.data.report.prediction.is_thalassemia,true);
+  const user=core.publicUser(await core.userById(secret.id));
+  const input={display_name:user.display_name,email:user.email,account_type:user.account_type,is_active:true,can_view_results:true};
+  const allowed=await req('PATCH',`/api/admin/users/${secret.id}`,admin,input);
+  assert.equal(allowed.status,200,JSON.stringify(allowed.data));
+  assert.equal(allowed.data.user.can_view_results,true);
+  const visible=await req('GET',`/api/patients/${patientId}/reports`,secret.token);
+  assert.equal(visible.data.reports[0].prediction.is_thalassemia,true);
+  assert.equal((await req('GET',`/api/clinical-reports/${saved.data.report.id}`,secret.token)).status,200);
+  const blocked=await req('PATCH',`/api/admin/users/${secret.id}`,admin,{...input,can_view_results:false});
+  assert.equal(blocked.status,200);
+  assert.equal(blocked.data.user.can_view_results,false);
+  const hiddenAgain=await req('GET',`/api/patients/${patientId}/reports`,secret.token);
+  assert.equal('prediction' in hiddenAgain.data.reports[0],false);
+  assert.equal((await req('GET',`/api/clinical-reports/${saved.data.report.id}`,secret.token)).status,403);
 });
