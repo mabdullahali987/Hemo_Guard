@@ -15,7 +15,15 @@ async function main() {
     if (count) throw new Error('A superadmin already exists. Refusing to overwrite.');
     const date = now();
     await db.prepare(`INSERT INTO users(id,display_name,email,account_type,password_hash,is_active,created_at,updated_at)
-       VALUES(?,?,?,?,?,1,?,?)`).run(randomUUID(), 'Superadmin', email, bcrypt.hashSync(password, 12), date, date);
+   VALUES(?,?,?,?,?,1,?,?)`).run(
+     randomUUID(),
+     'Superadmin',
+     email,
+     'superadmin',
+     bcrypt.hashSync(password, 12),
+     date,
+     date
+   );
   });
   console.log('Superadmin created. Remove ADMIN_PASSWORD from your environment and command history.');
 }
