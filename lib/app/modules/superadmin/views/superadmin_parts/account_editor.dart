@@ -23,6 +23,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
   String plan = 'trial';
   String unit = 'days';
   late bool active;
+  late bool canViewResults;
   bool saving = false;
   bool showPassword = false;
   String? message;
@@ -41,6 +42,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
     duration = TextEditingController(text: '14');
     type = existing?['account_type']?.toString() ?? 'person';
     active = existing?['is_active'] == true;
+    canViewResults = existing?['can_view_results'] == true;
   }
 
   @override
@@ -62,6 +64,7 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
         'display_name': name.text.trim(),
         'email': email.text.trim(),
         'account_type': type,
+        'can_view_results': canViewResults,
         if (editing) ...{
           'is_active': active,
           if (password.text.isNotEmpty) 'password': password.text,
@@ -172,6 +175,15 @@ class _AccountEditorDialogState extends State<_AccountEditorDialog> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 12),
+            _DialogSwitch(
+              label: 'Allow result viewing',
+              description: canViewResults
+                  ? 'This account can view its saved screening predictions.'
+                  : 'Screenings save, but only superadmin can view results.',
+              value: canViewResults,
+              onChanged: saving ? null : (v) => setState(() => canViewResults = v),
             ),
             const SizedBox(height: 12),
             if (editing)

@@ -68,6 +68,12 @@ extension _SuperadminAccounts on _SuperadminViewState {
                             ? const Color(0xFF14866A)
                             : const Color(0xFFB52D52),
                       ),
+                      _StatusCapsule(
+                        u['can_view_results'] == true ? 'Results visible' : 'Admin-only results',
+                        color: u['can_view_results'] == true
+                            ? const Color(0xFF14866A)
+                            : _AdminColors.muted,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),

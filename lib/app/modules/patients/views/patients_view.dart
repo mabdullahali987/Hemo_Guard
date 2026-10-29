@@ -189,6 +189,14 @@ class _PatientHistoryViewState extends State<PatientHistoryView> {
   );
 
   Future<void> _showReport(BuildContext context, Map<String, dynamic> report) async {
+    if (report['result_visible'] == false) {
+      await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+        title: const Text('Result restricted'),
+        content: const Text('This screening has been saved securely. Only the superadmin can view the result.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+      ));
+      return;
+    }
     final cbc = Map<String, dynamic>.from(report['cbc'] as Map);
     final model = Map<String, dynamic>.from(report['prediction'] as Map);
     await showModalBottomSheet<void>(
@@ -257,8 +265,9 @@ class _ReportTile extends StatelessWidget {
   final bool newest;
   @override
   Widget build(BuildContext context) {
-    final cbc = Map<String, dynamic>.from(report['cbc'] as Map);
-    final prediction = Map<String, dynamic>.from(report['prediction'] as Map);
+    final restricted = report['result_visible'] == false;
+    final cbc = restricted ? <String, dynamic>{} : Map<String, dynamic>.from(report['cbc'] as Map);
+    final prediction = restricted ? <String, dynamic>{} : Map<String, dynamic>.from(report['prediction'] as Map);
     final date = report['sample_date']?.toString() ??
       report['created_at']?.toString().split('T').first ?? 'Unknown date';
     return UserGlassPanel(padding: EdgeInsets.zero, radius: 21,
@@ -286,11 +295,14 @@ class _ReportTile extends StatelessWidget {
                   ],
                 ]),
                 const SizedBox(height: 5),
-                Text('Hb ${cbc['hemoglobin']} g/dL  ·  MCV ${cbc['mcv']} fL',
-                  style: TextStyle(color: UserGlassColors.muted, fontSize: 11.5)),
-                const SizedBox(height: 3),
-                Text(prediction['is_thalassemia'] == true
-                  ? 'Indicators detected' : 'No indicators detected',
+                if (!restricted) ...[
+                  Text('Hb ${cbc['hemoglobin']} g/dL  ·  MCV ${cbc['mcv']} fL',
+                    style: TextStyle(color: UserGlassColors.muted, fontSize: 11.5)),
+                  const SizedBox(height: 3),
+                ],
+                Text(restricted ? 'Result restricted — admin only' :
+                  prediction['is_thalassemia'] == true
+                    ? 'Indicators detected' : 'No indicators detected',
                   style: TextStyle(color: UserGlassColors.ink, fontSize: 11,
                     fontWeight: FontWeight.w600)),
               ])),

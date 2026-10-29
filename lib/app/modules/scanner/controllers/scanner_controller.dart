@@ -49,6 +49,7 @@ class ScannerController extends GetxController {
   String? _consentIntentId;
   Map<String,String> patientDraft = {};
   final Rxn<Map<String,dynamic>> savedReport = Rxn<Map<String,dynamic>>();
+  final RxBool resultRestricted = false.obs;
   final RxString patientPublicId = ''.obs;
   final RxString pdfLocation = ''.obs;
   String _requestId = _newRequestId();
@@ -178,6 +179,7 @@ class ScannerController extends GetxController {
     isDetected.value = false;
     result.value = null;
     savedReport.value=null;
+    resultRestricted.value=false;
     patientPublicId.value='';
     pdfLocation.value='';
     patientDraft={};
@@ -420,7 +422,7 @@ class ScannerController extends GetxController {
   void setValue(String key, String text) {
     final cleaned = text.trim();
     values[key] = cleaned.isEmpty ? null : double.tryParse(cleaned);
-    if(savedReport.value != null) {result.value=null;isDetected.value=false;savedReport.value=null;pdfLocation.value='';}
+    if(savedReport.value != null) {result.value=null;isDetected.value=false;savedReport.value=null;resultRestricted.value=false;pdfLocation.value='';}
   }
 
   void clearAll() {
@@ -437,6 +439,7 @@ class ScannerController extends GetxController {
     isDetected.value = false;
     result.value = null;
     savedReport.value=null;
+    resultRestricted.value=false;
     patientPublicId.value='';
     pdfLocation.value='';
     patientDraft={};
@@ -537,8 +540,18 @@ class ScannerController extends GetxController {
       final patient=Map<String,dynamic>.from(finalized['patient'] as Map);
       savedReport.value=report;
       patientPublicId.value=patient['public_id']?.toString()??'';
-      result.value=calculated;
-      isDetected.value=true;
+      // The backend decides visibility; no local PDF or result card is created
+      // for an account without explicit superadmin permission.
+      final visible=finalized['result_visible']==true;
+      resultRestricted.value=!visible;
+      result.value=visible ? calculated : null;
+      isDetected.value=visible;
+      if (!visible) {
+        Get.snackbar('Screening saved',
+          'Patient ${patientPublicId.value} • Only the superadmin can view this result.',
+          snackPosition:SnackPosition.TOP);
+        return;
+      }
       try {
         final pdf=await HemoGuardPdfGenerator.generate(report,patientPublicId:patientPublicId.value);
         pdfLocation.value=pdf.path;

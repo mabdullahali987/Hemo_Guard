@@ -422,6 +422,24 @@ class _ResultBanner extends GetView<ScannerController> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      if (controller.resultRestricted.value) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: UserGlassColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: UserGlassColors.border),
+          ),
+          child: const Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.lock_outline, size: 30),
+            SizedBox(height: 7),
+            Text('Screening saved securely', style: TextStyle(fontWeight: FontWeight.w700)),
+            SizedBox(height: 4),
+            Text('Only your administrator can view the result.', textAlign: TextAlign.center),
+          ]),
+        );
+      }
       if (!controller.isDetected.value || controller.result.value == null) {
         return const SizedBox.shrink();
       }
