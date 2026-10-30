@@ -6,12 +6,17 @@ import 'package:hemo_guard/app/services/auth_service.dart';
 
 /// Same account-isolated patient API, with a user-scoped liquid-glass UI.
 class PatientsView extends StatefulWidget {
-  const PatientsView({super.key});
+  const PatientsView({super.key, this.embedded = false});
+  final bool embedded;
   @override
-  State<PatientsView> createState() => _PatientsViewState();
+  State<PatientsView> createState() => PatientsViewState();
 }
 
-class _PatientsViewState extends State<PatientsView> {
+class PatientsViewState extends State<PatientsView> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  void refresh() => _refresh();
   final search = TextEditingController();
   late Future<Map<String, dynamic>> result;
 
@@ -27,10 +32,9 @@ class _PatientsViewState extends State<PatientsView> {
   }
 
   @override
-  Widget build(BuildContext context) => UserGlassFrame(
-    title: 'Patient reports', subtitle: 'HEMOGUARD  /  HISTORY',
-    selectedIndex: 2, onRefresh: _refresh,
-    child: Column(children: [
+  Widget build(BuildContext context) {
+    super.build(context);
+    final content = Column(children: [
       Padding(padding: const EdgeInsets.fromLTRB(19, 8, 19, 14),
         child: UserGlassPanel(padding: const EdgeInsets.fromLTRB(17, 17, 17, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -110,8 +114,11 @@ class _PatientsViewState extends State<PatientsView> {
           );
         },
       )),
-    ]),
-  );
+    ]);
+    return widget.embedded ? content : UserGlassFrame(
+      title: 'Patient reports', subtitle: 'HEMOGUARD  /  HISTORY',
+      selectedIndex: 2, onRefresh: _refresh, child: content);
+  }
 }
 
 class PatientHistoryView extends StatefulWidget {

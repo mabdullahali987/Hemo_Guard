@@ -6,11 +6,11 @@ import '../controllers/settings_controller.dart';
 
 /// Settings behavior preserved; controls now follow the user glass workspace.
 class SettingsView extends GetView<SettingsController> {
-  const SettingsView({super.key});
+  const SettingsView({super.key, this.embedded = false});
+  final bool embedded;
   @override
-  Widget build(BuildContext context) => UserGlassFrame(
-    title: 'Settings', subtitle: 'HEMOGUARD  /  PREFERENCES', selectedIndex: 3,
-    child: Obx(() {
+  Widget build(BuildContext context) {
+    final content = Obx(() {
       final s = controller.settings.value;
       return ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
         UserGlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -62,6 +62,9 @@ class SettingsView extends GetView<SettingsController> {
         Center(child: Text('HemoGuard • Developed by CoE-AI',
           style: TextStyle(color: UserGlassColors.muted, fontSize: 11))),
       ]);
-    }),
-  );
+    });
+    return embedded ? content : UserGlassFrame(
+      title: 'Settings', subtitle: 'HEMOGUARD  /  PREFERENCES', selectedIndex: 3,
+      child: content);
+  }
 }

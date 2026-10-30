@@ -10,12 +10,12 @@ import '../widgets/user_glass.dart';
 /// Existing user actions and routes, presented in the same glass vocabulary as
 /// Login and Superadmin. No prediction, authorization or report logic changed.
 class HomeView extends GetView<HomeController> {
-  const HomeView({super.key});
+  const HomeView({super.key, this.embedded = false});
+  final bool embedded;
 
   @override
-  Widget build(BuildContext context) => UserGlassFrame(
-    title: 'Dashboard', subtitle: 'HEMOGUARD', selectedIndex: 0,
-    child: LayoutBuilder(builder: (context, constraints) {
+  Widget build(BuildContext context) {
+    final content = LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > 680;
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 9, 20, 24),
@@ -41,19 +41,25 @@ class HomeView extends GetView<HomeController> {
               const SizedBox(width: 12),
               Expanded(child: _QuickAction(
                 icon: Icons.folder_shared_outlined, title: 'Patient reports',
-                description: 'View saved history', onTap: _patients)),
+                description: 'View saved history', onTap: () => _patients(context))),
             ]),
             const SizedBox(height: 22),
             const _About(),
           ]),
         )),
       );
-    }),
-  );
+    });
+    return embedded ? content : UserGlassFrame(
+      title: 'Dashboard', subtitle: 'HEMOGUARD', selectedIndex: 0, child: content);
+  }
 
   static void _scan() { Get.toNamed(Routes.SCANNER, arguments: {'type': 'image'}); }
   static void _manual() { Get.toNamed(Routes.SCANNER, arguments: {'type': 'text'}); }
-  static void _patients() { Get.toNamed(Routes.PATIENTS); }
+  static void _patients(BuildContext context) {
+    final workspace = UserWorkspaceNavigation.maybeOf(context);
+    if (workspace != null) { workspace.selectTab(1); }
+    else { Get.toNamed(Routes.PATIENTS); }
+  }
 }
 
 class _Welcome extends StatelessWidget {
@@ -85,9 +91,19 @@ class _Welcome extends StatelessWidget {
           style: TextStyle(color: UserGlassColors.muted, fontSize: 12.5, height: 1.5)),
       ])),
       const SizedBox(width: 13),
-      Container(width: wide ? 77 : 62, height: wide ? 77 : 62,
-
-        child: Icon(Icons.waving_hand_sharp, color: Colors.grey)),
+      Container(
+        width: wide ? 77 : 62, height: wide ? 77 : 62,
+        decoration: BoxDecoration(
+          gradient: UserGlassColors.gradient,
+          borderRadius: BorderRadius.circular(21),
+          boxShadow: [BoxShadow(
+            color: UserGlassColors.magenta.withOpacity(.20),
+            blurRadius: 22, offset: const Offset(0, 9)),
+          ],
+        ),
+        child: Icon(Icons.health_and_safety_outlined,
+          color: Colors.white, size: wide ? 37 : 31),
+      ),
     ]),
   );
 }

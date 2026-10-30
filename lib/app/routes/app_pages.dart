@@ -5,12 +5,10 @@ import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/access_view.dart';
 import '../modules/superadmin/views/superadmin_view.dart';
 import '../services/auth_middleware.dart';
-import '../modules/home/views/home_view.dart';
+import '../modules/home/views/user_workspace_view.dart';
 import '../modules/scanner/bindings/scanner_binding.dart';
 import '../modules/scanner/views/scanner_view.dart';
 import '../modules/settings/bindings/settings_binding.dart';
-import '../modules/settings/views/settings_view.dart';
-import '../modules/patients/views/patients_view.dart';
 
 part 'app_routes.dart';
 
@@ -26,7 +24,7 @@ class AppPages {
       middlewares: [AdminOnlyMiddleware()]),
     GetPage(
       name: _Paths.HOME,
-      page: () => const HomeView(),
+      page: () => const UserWorkspaceView(),
       binding: HomeBinding(),
       middlewares: [UserOnlyMiddleware()],
     ),
@@ -36,10 +34,10 @@ class AppPages {
       binding: ScannerBinding(),
       middlewares: [UserOnlyMiddleware()],
     ),
-    GetPage(name: _Paths.PATIENTS, page: () => const PatientsView(), middlewares: [UserOnlyMiddleware()]),
+    GetPage(name: _Paths.PATIENTS, page: () => const UserWorkspaceView(initialTab: 1), middlewares: [UserOnlyMiddleware()]),
     GetPage(
       name: _Paths.SETTINGS,
-      page: () => const SettingsView(),
+      page: () => const UserWorkspaceView(initialTab: 2),
       binding: SettingsBinding(),
       middlewares: [UserOnlyMiddleware()],
     ),
