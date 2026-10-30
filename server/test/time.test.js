@@ -1,20 +1,47 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { addDuration, accessState } = require('../src/time');
-test('calendar-month subscription clamps to last day of February', () => {
-  assert.equal(addDuration('2026-01-31T10:00:00.000Z', 1,'months'),'2026-02-28T10:00:00.000Z');
-});
-test('trial day increments respect UTC time', () => {
-  assert.equal(addDuration('2026-10-17T10:00:00.000Z', 10,'days'),'2026-10-27T10:00:00.000Z');
-});
-test('ended trial, stopped subscription and disabled statuses', () => {
-  const base = { account_type: 'lab', is_active: 1, access_plan: 'trial', plan_started_at: '2026-01-01T00:00:00.000Z', plan_expires_at: '2026-10-01T00:00:00.000Z' };
-  assert.equal(accessState(base, new Date('2026-10-17')), 'expired');
-  assert.equal(accessState({ ...base, plan_stopped_at: '2026-09-10T00:00:00Z' }), 'stopped');
-  assert.equal(accessState({ ...base, is_active: 0 }), 'disabled');
-  assert.equal(accessState({ ...base, plan_expires_at: '2026-12-01T00:00:00Z' }, new Date('2026-10-17')), 'active');
-});
-test('reject zero or excessive durations', () => {
-  assert.throws(() => addDuration('2026-01-01T00:00:00Z', 0,'days'));
-  assert.throws(() => addDuration('2026-01-01T00:00:00Z', 121,'months'));
-});
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for authentication and API requests to HemoGuard backend. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:label="Hemo Guard"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>

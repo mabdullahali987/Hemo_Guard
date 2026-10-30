@@ -1,8 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <!-- ML Kit's bundled model works fully offline; strip the INTERNET
-         permission it declares so the app makes no network access. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for authentication and API requests to HemoGuard backend. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Hemo Guard"
         android:name="${applicationName}"
