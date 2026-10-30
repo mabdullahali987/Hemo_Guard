@@ -37,6 +37,11 @@ class ScannerView extends GetView<ScannerController> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         centerTitle: false,
+        actions:[Obx(()=>controller.consentConfirmed.value &&
+            (controller.isText.value ? controller.intakeCompleted.value : controller.hasScanned.value)
+          ? IconButton(tooltip:'Edit patient information and documents',
+              icon:const Icon(Icons.manage_accounts_outlined),onPressed:controller.reviewPatientDetails)
+          : const SizedBox.shrink())],
         title: Obx(() =>
             Text(controller.isText.value ? 'Enter Values' : 'Scan Report')),
       ),
@@ -45,6 +50,9 @@ class ScannerView extends GetView<ScannerController> {
           if (!controller.consentConfirmed.value) {
             return ConsentGate(controller: controller);
           }
+          if (controller.isText.value && !controller.intakeCompleted.value) {
+            return const _PatientIntakeGate();
+          }
           final showCamera =
               !controller.isText.value && !controller.hasScanned.value;
           return showCamera ? const _CameraView() : const _FormView();
@@ -52,6 +60,28 @@ class ScannerView extends GetView<ScannerController> {
       ),
     ));
   }
+}
+
+class _PatientIntakeGate extends GetView<ScannerController> {
+  const _PatientIntakeGate();
+  @override
+  Widget build(BuildContext context) => Center(child:SingleChildScrollView(
+    padding:const EdgeInsets.all(22),child:ConstrainedBox(
+      constraints:const BoxConstraints(maxWidth:500),child:UserGlassPanel(
+      padding:const EdgeInsets.all(24),radius:26,
+      child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+        const Icon(Icons.badge_outlined,size:42,color:UserGlassColors.violet),
+        const SizedBox(height:14),
+        Text('Patient details first',style:TextStyle(color:UserGlassColors.ink,
+          fontSize:23,fontWeight:FontWeight.w800)),
+        const SizedBox(height:8),
+        Text('Before entering CBC measurements, confirm the patient name, age, sex and hematologist carrier assessment. You may also attach consent evidence and an electrophoresis report.',
+          style:TextStyle(color:UserGlassColors.muted,height:1.5)),
+        const SizedBox(height:20),
+        SizedBox(width:double.infinity,child:ElevatedButton.icon(
+          onPressed:controller.reviewPatientDetails,
+          icon:const Icon(Icons.arrow_forward_rounded),label:const Text('Enter patient information'))),
+      ])))));
 }
 
 // ---------------------------------------------------------------------------

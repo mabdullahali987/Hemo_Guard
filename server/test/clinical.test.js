@@ -33,7 +33,7 @@ async function save(token,existing,reportNo){
   assert.equal(authorization.status,201);
   return req('POST','/api/clinical-reports/finalize',token,{
     authorization_id:authorization.data.authorization_id,request_id:randomUUID(),consent_intent_id:consent.data.consent_intent_id,
-    existing_patient_id:existing||null,patient,cbc,prediction,source_report_number:reportNo,sample_date:'2026-10-23'});
+    existing_patient_id:existing||null,patient,hematologist_carrier:'yes',hematologist_name:'Dr Test',cbc,prediction,source_report_number:reportNo,sample_date:'2026-10-23'});
 }
 test.before(async()=>{
   const at=core.now();

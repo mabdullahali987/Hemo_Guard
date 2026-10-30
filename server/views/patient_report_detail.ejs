@@ -58,6 +58,17 @@
                                 %>
                     </td>
                 </tr>
+                <tr><th scope="row">Hematologist assessment · carrier?</th><td><%= report.hematologist_carrier==='yes'?'Yes':report.hematologist_carrier==='no'?'No':'Not recorded (older report)' %></td></tr>
+                <tr><th scope="row">Hematologist name</th><td><%= report.hematologist_name || 'Not provided' %></td></tr>
+                <tr><th scope="row">Hematologist notes</th><td><%= report.hematologist_notes || 'Not provided' %></td></tr>
+                <tr><th scope="row">Lab patient number</th><td><%= report.lab_patient_number || 'See CSV export' %></td></tr>
+                <tr><th scope="row">Evidence documents</th><td>
+                  <% if (!attachments || !attachments.length) { %>None attached<% } else { %>
+                    <% for (const doc of attachments) { %>
+                      <a class="button secondary" href="/admin/patient-attachments/<%= encodeURIComponent(doc.id) %>/download"><%= doc.kind==='consent_document'?'Consent document':'Electrophoresis report' %> · <%= doc.filename %></a>
+                    <% } %>
+                  <% } %>
+                </td></tr>
                 <% for(const [key,value] of Object.entries(report.cbc)) { %>
                     <tr>
                         <th scope="row">

@@ -71,7 +71,7 @@ if (sqliteTest) {
     // All existing HemoGuard queries use '?' only for parameters; none contain
     // question-mark JSON operators or literals. Keep bindings parameterized.
     // Supabase's private schema is explicitly qualified in every statement.
-    const qualified = statement.replace(/\b(FROM|JOIN|INTO|UPDATE)\s+(users|sessions|reports|patients|clinical_reports|consent_intents|patient_consents|audit_events)\b/gi,
+    const qualified = statement.replace(/\b(FROM|JOIN|INTO|UPDATE)\s+(users|sessions|reports|patients|clinical_reports|consent_intents|patient_consents|audit_events|clinical_attachments)\b/gi,
       (_, command, table) => `${command} hemoguard.${table}`);
     return qualified.replace(/\?/g, () => `$${++index}`);
   }

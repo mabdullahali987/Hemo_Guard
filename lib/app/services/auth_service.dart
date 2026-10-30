@@ -66,6 +66,11 @@ class AuthService extends GetxService {
     }
   }
 
+  Future<String> downloadAdminFile(String path,String filename) async {
+    if (_token==null || !isSuperadmin) throw const ApiException('Superadmin required',403);
+    return ApiClient.downloadAdminFile(path,_token!,filename);
+  }
+
   Future<void> changePassword(String current, String next) async {
     await api('POST', '/api/auth/change-password',
         body: {'old_password': current, 'new_password': next});

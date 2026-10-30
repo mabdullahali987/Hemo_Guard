@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 /// HTTPS JSON transport used by authentication, report audit, and superadmin.
 /// Set --dart-define=API_BASE_URL=https://your-domain.example at build time.
@@ -66,4 +67,29 @@ class ApiClient {
       client.close(force: true);
     }
   }
+  /// Authenticated binary export. Never exposes the bearer token in a URL.
+  static Future<String> downloadAdminFile(String path, String token, String filename) async {
+    final origin=baseUrl.trim().replaceFirst(RegExp(r'/$'),'');
+    final uri=Uri.parse('$origin$path');
+    if (uri.scheme!='https') throw const ApiException('HTTPS is required to download clinical exports',0);
+    final client=HttpClient()..connectionTimeout=const Duration(seconds:15);
+    try {
+      final request=await client.getUrl(uri).timeout(const Duration(seconds:20));
+      request.headers.set(HttpHeaders.authorizationHeader,'Bearer $token');
+      final response=await request.close().timeout(const Duration(seconds:30));
+      if (response.statusCode!=200) throw ApiException('Download failed (${response.statusCode})',response.statusCode);
+      final bytes=await response.fold<List<int>>(<int>[],(acc,part)=>acc..addAll(part));
+      if (bytes.length>20*1024*1024) throw const ApiException('Export exceeds the 20 MB download limit',0);
+      final safeName=filename.replaceAll(RegExp(r'[^A-Za-z0-9._-]'),'_');
+      final dir=Directory('${(await getApplicationDocumentsDirectory()).path}/HemoGuardExports');
+      await dir.create(recursive:true);
+      final file=File('${dir.path}/$safeName');
+      await file.writeAsBytes(bytes,flush:true);
+      return file.path;
+    } on SocketException { throw const ApiException('Cannot connect to the server',0); }
+      on HandshakeException { throw const ApiException('Secure connection failed',0); }
+      on TimeoutException { throw const ApiException('Download timed out',0); }
+    finally { client.close(force:true); }
+  }
+
 }

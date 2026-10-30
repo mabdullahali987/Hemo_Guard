@@ -49,6 +49,7 @@ class ScannerController extends GetxController {
   final RxString consentVersion = ''.obs;
   String? _consentIntentId;
   Map<String,String> patientDraft = {};
+  final RxBool intakeCompleted = false.obs;
   final Rxn<Map<String,dynamic>> savedReport = Rxn<Map<String,dynamic>>();
   final RxBool resultRestricted = false.obs;
   final RxString patientPublicId = ''.obs;
@@ -80,6 +81,8 @@ class ScannerController extends GetxController {
         body:{'accepted':true,'version':consentVersion.value});
       _consentIntentId=response['consent_intent_id']?.toString();
       consentConfirmed.value=true;
+      // Manual entry starts with patient identity before CBC measurements.
+      intakeCompleted.value=false;
       if(!isText.value)await initCamera();
     } catch(e) {
       UserFeedback.error('Consent not recorded', e.toString());
@@ -184,6 +187,7 @@ class ScannerController extends GetxController {
     patientPublicId.value='';
     pdfLocation.value='';
     patientDraft={};
+    intakeCompleted.value=false;
     _requestId=_newRequestId();
     hasScanned.value = true;
     isProcessing.value = true;
@@ -436,12 +440,37 @@ class ScannerController extends GetxController {
     patientPublicId.value='';
     pdfLocation.value='';
     patientDraft={};
+    intakeCompleted.value=false;
     _requestId=_newRequestId();
   }
 
   /// Trim a trailing ".0" so 91.0 shows as "91" but 30.8 stays "30.8".
   static String _fmt(double v) {
     return v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+  }
+
+  /// The manual path collects demographics immediately after consent.
+  /// The automatic path calls the same editable dialog after OCR.
+  Future<void> reviewPatientDetails() async {
+    final reviewed=await Get.dialog<Map<String,String>>(
+      PatientReviewDialog(initial:patientDraft),barrierDismissible:false);
+    if (reviewed==null) return;
+    patientDraft=reviewed;
+    intakeCompleted.value=true;
+  }
+
+  Future<void> _uploadEvidence(AuthService auth, String kind, String? path) async {
+    if (path==null || path.trim().isEmpty) return;
+    final file=File(path);
+    if (!await file.exists()) throw const FormatException('Selected document is no longer available. Please select it again.');
+    final bytes=await file.readAsBytes();
+    if (bytes.isEmpty || bytes.length>1200000) throw const FormatException('Documents must be 1.2 MB or smaller.');
+    final name=file.uri.pathSegments.last;
+    final ext=name.split('.').last.toLowerCase();
+    final mime=ext=='pdf'?'application/pdf':ext=='png'?'image/png':ext=='webp'?'image/webp':'image/jpeg';
+    await auth.api('POST','/api/consent/intents/$_consentIntentId/attachments',body:{
+      'kind':kind,'filename':name,'mime_type':mime,'data_base64':base64Encode(bytes),
+    });
   }
 
   /// Patient-linked report flow. Existing XGBoost calculation is unchanged.
@@ -462,11 +491,13 @@ class ScannerController extends GetxController {
     isDetected.value=false;
     result.value=null;
     try {
-      // Patient fields remain editable even when OCR filled them all.
-      final reviewed=await Get.dialog<Map<String,String>>(
-        PatientReviewDialog(initial:patientDraft),barrierDismissible:false);
-      if(reviewed==null)return;
-      patientDraft=reviewed;
+      // OCR-prefilled values are always editable. Manual intake has already
+      // been completed before showing the CBC entry screen.
+      if (!isText.value || !intakeCompleted.value) {
+        await reviewPatientDetails();
+        if (!intakeCompleted.value) return;
+      }
+      final reviewed=patientDraft;
       final auth=Get.find<AuthService>();
       final match=await auth.api('POST','/api/patients/match',body:{
         'name':reviewed['name'],'age_at_test':reviewed['age_at_test'],
@@ -497,6 +528,9 @@ class ScannerController extends GetxController {
       final sample=<String,double>{for(final p in params)_featureKey[p.key]!:values[p.key]!};
       // The existing predictor and numerical calculations are not altered.
       final calculated=_predictor!.predict(sample);
+      // Supporting documents are optional and never alter clinical inference.
+      await _uploadEvidence(auth,'consent_document',reviewed['consent_document_path']);
+      await _uploadEvidence(auth,'electrophoresis',reviewed['electrophoresis_path']);
       final authorized=await auth.api('POST','/api/reports/authorize',
         body:{'mode':isText.value?'text':'image'});
       final finalized=await auth.api('POST','/api/clinical-reports/finalize',body:{
@@ -511,6 +545,9 @@ class ScannerController extends GetxController {
           'lab_patient_number':reviewed['lab_patient_number'],
           'public_id':reviewed['public_id'],
         },
+        'hematologist_carrier':reviewed['hematologist_carrier'],
+        'hematologist_name':reviewed['hematologist_name'],
+        'hematologist_notes':reviewed['hematologist_notes'],
         'source_report_number':reviewed['source_report_number'],
         'sample_date':reviewed['sample_date'],
         'cbc':{

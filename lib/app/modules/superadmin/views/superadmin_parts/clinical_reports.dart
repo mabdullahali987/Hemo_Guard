@@ -15,7 +15,7 @@ class _AdminClinicalReportsPageState extends State<_AdminClinicalReportsPage> {
   @override Widget build(BuildContext context)=>_AdminCanvas(child:Scaffold(
     backgroundColor:Colors.transparent,
     appBar:AppBar(title:const Text('All Patient Reports'),backgroundColor:Colors.transparent,
-      foregroundColor:_AdminColors.ink,actions:[IconButton(onPressed:_load,icon:const Icon(Icons.refresh))]),
+      foregroundColor:_AdminColors.ink,actions:[IconButton(tooltip:'Export all data as CSV',onPressed:_exportCsv,icon:const Icon(Icons.table_view_outlined)),IconButton(onPressed:_load,icon:const Icon(Icons.refresh))]),
     body:FutureBuilder<Map<String,dynamic>>(future:reportsFuture,builder:(context,snapshot){
       if(!snapshot.hasData){if(snapshot.hasError)return Center(child:Text('Cannot load reports: ${snapshot.error}'));return const Center(child:CircularProgressIndicator());}
       final list=(snapshot.data!['reports'] as List).cast<Map<String,dynamic>>();
@@ -41,6 +41,24 @@ class _AdminClinicalReportsPageState extends State<_AdminClinicalReportsPage> {
       ]);
     }),
   ));
+  Future<void> _exportCsv() async {
+    try {
+      final path=await auth.downloadAdminFile('/api/admin/clinical-reports.csv','HemoGuard-Clinical-Reports.csv');
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('CSV saved to: $path')));
+    } catch(e) {
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('CSV export failed: $e')));
+    }
+  }
+  Future<void> _downloadEvidence(Map<String,dynamic> file) async {
+    try {
+      final name='${file['kind']}_${file['id']}.${file['mime_type']=='application/pdf'?'pdf':(file['mime_type']?.toString().split('/').last??'bin')}';
+      final path=await auth.downloadAdminFile('/api/admin/clinical-attachments/${Uri.encodeComponent(file['id'].toString())}/download',name);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Document saved to: $path')));
+    } catch(e) {
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Document download failed: $e')));
+    }
+  }
+
   Future<void> _showDetail(String id) async {
     try {
       final detail=await auth.api('GET','/api/admin/clinical-reports/${Uri.encodeComponent(id)}');
@@ -48,6 +66,8 @@ class _AdminClinicalReportsPageState extends State<_AdminClinicalReportsPage> {
       final report=Map<String,dynamic>.from(detail['report'] as Map);
       final cbc=Map<String,dynamic>.from(report['cbc'] as Map);
       final prediction=Map<String,dynamic>.from(report['prediction'] as Map);
+      final files=(detail['attachments'] as List? ?? [])
+        .map((d)=>Map<String,dynamic>.from(d as Map)).toList();
       await showModalBottomSheet<void>(context:context,useSafeArea:true,isScrollControlled:true,
         backgroundColor:Colors.transparent,builder:(ctx)=>Padding(padding:const EdgeInsets.all(12),
           child:_FrostedPanel(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,
@@ -58,6 +78,13 @@ class _AdminClinicalReportsPageState extends State<_AdminClinicalReportsPage> {
               Text('Account: ${report['account_name_snapshot']} (${report['account_type_snapshot']})',style:TextStyle(color:_AdminColors.ink)),
               const SizedBox(height:12),for(final e in cbc.entries)Padding(padding:const EdgeInsets.symmetric(vertical:3),
                 child:Text('${e.key.replaceAll('_',' ').toUpperCase()}: ${e.value}',style:TextStyle(color:_AdminColors.ink))),
+              const Divider(),
+              Text('Hematologist carrier assessment: ${report['hematologist_carrier'] ?? 'Not recorded'}',
+                style:TextStyle(color:_AdminColors.ink,fontWeight:FontWeight.w700)),
+              if(report['hematologist_name']!=null)Text('Hematologist: ${report['hematologist_name']}',style:TextStyle(color:_AdminColors.ink)),
+              if(report['hematologist_notes']!=null)Text('Notes: ${report['hematologist_notes']}',style:TextStyle(color:_AdminColors.ink)),
+              for(final file in files)TextButton.icon(onPressed:()=>_downloadEvidence(file),
+                icon:const Icon(Icons.download_outlined),label:Text('Download ${file['kind']== 'consent_document'?'consent':'electrophoresis'}: ${file['filename']}')),
               const Divider(),Text(prediction['is_thalassemia']==true?'Indicators detected':'No indicators detected',
                 style:TextStyle(color:_AdminColors.ink,fontWeight:FontWeight.bold)),
               Text('Consent: ${report['consent_id']}',style:TextStyle(color:_AdminColors.muted)),

@@ -17,6 +17,8 @@ app.set('trust proxy', process.env.VERCEL ? 1 : 'loopback');
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 app.use(helmet());
+// Separate small medical-evidence route payloads from all existing compact JSON APIs.
+app.use('/api/consent/intents/:id/attachments', express.json({ limit:'1.8mb' }));
 app.use(express.json({ limit: '16kb' }));
 // Profile pictures are resized in the browser and sent as a compact data URL.
 app.use(express.urlencoded({ extended: false, limit: '768kb' }));
@@ -81,6 +83,8 @@ app.post('/api/reports/:id/complete', needAuth, tryRoute(async (req,res) => {
 app.get('/api/consent/current', needAuth, tryRoute(async (req,res) => res.json(clinical.consentCurrent())));
 app.post('/api/consent/intents', needAuth, tryRoute(async (req,res) =>
   res.status(201).json(await clinical.startConsent(req.auth.user.id,req.body))));
+app.post('/api/consent/intents/:id/attachments', needAuth, tryRoute(async (req,res) =>
+  res.status(201).json(await clinical.uploadEvidence(req.auth.user.id,req.params.id,req.body))));
 app.post('/api/patients/match', needAuth, tryRoute(async (req,res) =>
   res.json(await clinical.matchPatient(req.auth.user.id,req.body))));
 app.get('/api/patients', needAuth, tryRoute(async (req,res) =>
@@ -95,6 +99,19 @@ app.get('/api/admin/clinical-reports', ...needAdminApi, tryRoute(async (req,res)
   res.json(await clinical.adminReports(req.auth.user.id,req.query.limit,req.query.offset))));
 app.get('/api/admin/clinical-reports/:id', ...needAdminApi, tryRoute(async (req,res) =>
   res.json(await clinical.reportDetail(req.auth.user.id,req.params.id,true))));
+app.get('/api/admin/clinical-reports.csv', ...needAdminApi, tryRoute(async (req,res) => {
+  const csv=await clinical.adminCsv(req.auth.user.id);
+  res.set('Content-Type','text/csv; charset=utf-8');
+  res.set('Content-Disposition','attachment; filename="HemoGuard-Clinical-Reports.csv"');
+  res.set('Cache-Control','no-store'); res.send(csv);
+}));
+app.get('/api/admin/clinical-attachments/:id/download', ...needAdminApi, tryRoute(async (req,res) => {
+  const file=await clinical.adminEvidence(req.auth.user.id,req.params.id);
+  res.set('Content-Type',file.mime_type);
+  res.set('Content-Disposition',`attachment; filename="${file.kind}.${file.mime_type==='application/pdf'?'pdf':file.mime_type.split('/')[1]}"`);
+  res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');
+  res.send(file.data);
+}));
 app.get('/api/admin/clinical-reports/:id/pdf', ...needAdminApi, tryRoute(async (req,res) => {
   const {report}=await clinical.reportDetail(req.auth.user.id,req.params.id,true);
   res.set('Content-Type','application/pdf');
@@ -186,6 +203,18 @@ app.get('/admin/reports/:id', webAuth, tryRoute(async (req,res) => res.render('r
 app.get('/admin/patient-reports', webAuth, tryRoute(async (req,res) => res.render('patient_reports', {
   page:'reports', ...await clinical.adminReports(req.webAuth.user.id,100,req.query.offset)
 })));
+app.get('/admin/patient-reports/export.csv', webAuth, tryRoute(async (req,res) => {
+  const csv=await clinical.adminCsv(req.webAuth.user.id);
+  res.set('Content-Type','text/csv; charset=utf-8');
+  res.set('Content-Disposition','attachment; filename="HemoGuard-Clinical-Reports.csv"');
+  res.set('Cache-Control','no-store');res.send(csv);
+}));
+app.get('/admin/patient-attachments/:id/download', webAuth, tryRoute(async (req,res) => {
+  const file=await clinical.adminEvidence(req.webAuth.user.id,req.params.id);
+  res.set('Content-Type',file.mime_type);
+  res.set('Content-Disposition',`attachment; filename="${file.kind}.${file.mime_type==='application/pdf'?'pdf':file.mime_type.split('/')[1]}"`);
+  res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');res.send(file.data);
+}));
 app.get('/admin/patient-reports/:id/pdf', webAuth, tryRoute(async (req,res) => {
   const {report}=await clinical.reportDetail(req.webAuth.user.id,req.params.id,true);
   res.set('Content-Type','application/pdf');

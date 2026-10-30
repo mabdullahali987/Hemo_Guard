@@ -87,7 +87,10 @@ function validatePrediction(p) {
 function serialize(r, visible = true) {
   if (!r) return null;
   const {cbc_json, prediction_json, ...meta} = r;
-  if (!visible) return {...meta, result_visible:false};
+  if (!visible) {
+    const {hematologist_carrier,hematologist_name,hematologist_notes,...safeMeta}=meta;
+    return {...safeMeta, result_visible:false};
+  }
   return {...meta, cbc:JSON.parse(cbc_json), prediction:JSON.parse(prediction_json), result_visible:true};
 }
 async function accountCanView(accountId) {
@@ -102,6 +105,12 @@ async function finalize(accountId,input) {
   const user=await activeAccount(accountId);
   if (!input || typeof input !== 'object') fail('Report information missing');
   const p=person(input.patient);
+  // Explicit hematologist opinion is recorded separately from the AI result.
+  const carrier=safe(input.hematologist_carrier,8).toLowerCase();
+  if (!['yes','no'].includes(carrier)) fail('Select whether the hematologist considers the patient a carrier (Yes or No)');
+  const hematologistName=safe(input.hematologist_name,120) || null;
+  const hematologistNotes=safe(input.hematologist_notes,500) || null;
+  if (p.age === null || p.sex === 'unknown') fail('Patient age and sex are required');
   const cbc=validateCbc(input.cbc);
   const prediction=validatePrediction(input.prediction);
   const consentId=safe(input.consent_intent_id,80);
@@ -156,9 +165,14 @@ async function finalize(accountId,input) {
       VALUES(?,?,?,?,?,'operator_checkbox',?)`).run(patientConsentId,intent.id,patient.id,accountId,intent.consent_version,intent.accepted_at);
     await db.prepare('UPDATE consent_intents SET consumed_at=? WHERE id=? AND consumed_at IS NULL').run(time,intent.id);
     await db.prepare(`INSERT INTO clinical_reports(id,authorization_id,client_request_id,patient_id,account_id,account_name_snapshot,account_type_snapshot,
-      patient_name_snapshot,patient_age_at_test,patient_sex_at_test,source_report_number,sample_date,cbc_json,prediction_json,consent_id,created_at)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(rid,authId,requestId,patient.id,accountId,user.display_name,user.account_type,
-        p.name,p.age,p.sex,reportNumber,sampleDate,JSON.stringify(cbc),JSON.stringify(prediction),patientConsentId,time);
+      patient_name_snapshot,patient_age_at_test,patient_sex_at_test,source_report_number,sample_date,cbc_json,prediction_json,consent_id,created_at,
+      hematologist_carrier,hematologist_name,hematologist_notes)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(rid,authId,requestId,patient.id,accountId,user.display_name,user.account_type,
+        p.name,p.age,p.sex,reportNumber,sampleDate,JSON.stringify(cbc),JSON.stringify(prediction),patientConsentId,time,
+        carrier,hematologistName,hematologistNotes);
+    // Attach evidence uploaded for this consent intent to this immutable report.
+    await db.prepare('UPDATE clinical_attachments SET report_id=? WHERE consent_intent_id=? AND account_id=? AND report_id IS NULL')
+      .run(rid,intent.id,accountId);
     await db.prepare('UPDATE reports SET completed_at=? WHERE id=? AND completed_at IS NULL').run(time,authId);
     await core.audit(accountId,accountId,'report.generated',{mode:authorization.mode,report_id:authId,clinical_report_id:rid,patient_id:patient.public_id});
     return {already_recorded:false, result_visible:await accountCanView(accountId),patient,
@@ -194,13 +208,14 @@ async function reportDetail(actorId,id,admin=false) {
   if (!actor) fail('Not signed in',401);
   if (!admin) await activeAccount(actorId);
   if (admin && actor.account_type!=='superadmin') fail('Superadmin required',403);
-  const report=await db.prepare(`SELECT c.*,p.public_id FROM clinical_reports c JOIN patients p ON p.id=c.patient_id
+  const report=await db.prepare(`SELECT c.*,p.public_id,p.lab_patient_number FROM clinical_reports c JOIN patients p ON p.id=c.patient_id
     WHERE c.id=? ${admin?'':'AND c.account_id=?'}`).get(...(admin?[id]:[id,actorId]));
   if (!report) fail('Report not found',404);
   if (!admin && !await accountCanView(actorId)) fail('Result viewing is restricted by your administrator',403);
   await core.audit(actorId,report.account_id,'patient.report_viewed',{clinical_report_id:id,admin});
   const consent=await db.prepare('SELECT id,consent_version,method,recorded_at FROM patient_consents WHERE id=?').get(report.consent_id);
-  return {report:serialize(report),consent};
+  const attachments=await db.prepare('SELECT id,kind,filename,mime_type,byte_length,uploaded_at FROM clinical_attachments WHERE report_id=? ORDER BY kind').all(id);
+  return {report:serialize(report),consent,attachments};
 }
 async function adminReports(adminId,limit=100,offset=0) {
   const actor=await core.userById(adminId);
@@ -215,4 +230,90 @@ async function adminReports(adminId,limit=100,offset=0) {
   await core.audit(adminId,adminId,'patient.admin_list_viewed',{limit:take,offset:skip});
   return {reports,total,limit:take,offset:skip};
 }
-module.exports={consentCurrent,startConsent,matchPatient,finalize,listPatients,patientReports,reportDetail,adminReports};
+// Small, authenticated evidence uploads go to a private database table. Never return data to an ordinary account.
+const MAX_EVIDENCE_BYTES=1200000;
+function validatedEvidence(input) {
+  const kind=safe(input?.kind,40);
+  if (!['consent_document','electrophoresis'].includes(kind)) fail('Invalid document type');
+  const mime=safe(input?.mime_type,70).toLowerCase();
+  if (!['image/jpeg','image/png','image/webp','application/pdf'].includes(mime)) fail('Upload a JPEG, PNG, WebP or PDF document');
+  const filename=safe(input?.filename,150).replace(/[\\/\x00-\x1f]/g,'_') || 'medical-document';
+  const encoded=input?.data_base64;
+  if (typeof encoded!=='string' || encoded.length>Math.ceil(MAX_EVIDENCE_BYTES*4/3)+32 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))
+    fail('Document is missing, invalid or too large (maximum 1.2 MB)');
+  const data=Buffer.from(encoded,'base64');
+  if (!data.length || data.length>MAX_EVIDENCE_BYTES || data.toString('base64')!==encoded) fail('Document encoding is invalid');
+  const isPdf=data.subarray(0,5).toString('ascii')==='%PDF-';
+  const isJpeg=data[0]===0xff&&data[1]===0xd8&&data[2]===0xff;
+  const isPng=data.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'));
+  const isWebp=data.subarray(0,4).toString()==='RIFF' && data.subarray(8,12).toString()==='WEBP';
+  if (!((mime==='application/pdf'&&isPdf)||(mime==='image/jpeg'&&isJpeg)||(mime==='image/png'&&isPng)||(mime==='image/webp'&&isWebp)))
+    fail('Document content does not match its file type');
+  return {kind,mime,filename,data};
+}
+async function uploadEvidence(accountId,intentId,input) {
+  await activeAccount(accountId);
+  const doc=validatedEvidence(input);
+  const intent=await db.prepare('SELECT * FROM consent_intents WHERE id=? AND account_id=?').get(intentId,accountId);
+  if (!intent || intent.consumed_at || intent.expires_at<=now()) fail('Confirm patient consent again before attaching documents',403);
+  const existing=await db.prepare('SELECT id FROM clinical_attachments WHERE consent_intent_id=? AND kind=?').get(intentId,doc.kind);
+  const id=existing?.id || randomUUID();
+  if (existing) await db.prepare('UPDATE clinical_attachments SET filename=?,mime_type=?,byte_length=?,data=?,uploaded_at=? WHERE id=? AND account_id=? AND report_id IS NULL')
+    .run(doc.filename,doc.mime,doc.data.length,doc.data,now(),id,accountId);
+  else await db.prepare(`INSERT INTO clinical_attachments(id,account_id,consent_intent_id,kind,filename,mime_type,byte_length,data,uploaded_at)
+    VALUES(?,?,?,?,?,?,?,?,?)`).run(id,accountId,intentId,doc.kind,doc.filename,doc.mime,doc.data.length,doc.data,now());
+  await core.audit(accountId,accountId,'patient.evidence_uploaded',{kind:doc.kind,attachment_id:id});
+  return {id,kind:doc.kind,filename:doc.filename};
+}
+async function adminEvidence(adminId,attachmentId) {
+  const actor=await core.userById(adminId);
+  if (!actor || actor.account_type!=='superadmin') fail('Superadmin required',403);
+  const item=await db.prepare('SELECT * FROM clinical_attachments WHERE id=? AND report_id IS NOT NULL').get(attachmentId);
+  if (!item) fail('Document not found',404);
+  await core.audit(adminId,item.account_id,'patient.evidence_downloaded',{attachment_id:attachmentId,report_id:item.report_id});
+  return item;
+}
+async function adminCsv(adminId) {
+  const actor=await core.userById(adminId);
+  if (!actor || actor.account_type!=='superadmin') fail('Superadmin required',403);
+  const records=await db.prepare(`SELECT c.*,p.public_id,p.lab_patient_number,p.created_at AS patient_created_at,
+    pc.method AS consent_method,pc.consent_version,pc.recorded_at AS consent_recorded_at,
+    r.mode AS screening_mode
+    FROM clinical_reports c JOIN patients p ON p.id=c.patient_id
+    JOIN patient_consents pc ON pc.id=c.consent_id
+    JOIN reports r ON r.id=c.authorization_id ORDER BY c.created_at DESC`).all();
+  const attachments=await db.prepare(`SELECT report_id,kind,id,filename,mime_type,byte_length FROM clinical_attachments
+    WHERE report_id IS NOT NULL`).all();
+  const byReport=new Map();
+  for (const a of attachments) {if (!byReport.has(a.report_id)) byReport.set(a.report_id,{}); byReport.get(a.report_id)[a.kind]=a;}
+  const columns=['report_id','patient_id','patient_public_id','lab_patient_number','patient_name','patient_age_at_test',
+    'patient_sex_at_test','hematologist_carrier','hematologist_name','hematologist_notes','account_id','account_name',
+    'account_type','screening_mode','authorization_id','client_request_id','source_report_number','sample_date',
+    'hemoglobin','rbc','hematocrit','mcv','mch','mchc','rdw_cv',
+    'ai_is_thalassemia','ai_probability','ai_raw_score','ai_model_version',
+    'consent_id','consent_method','consent_version','consent_recorded_at',
+    'consent_document_id','consent_document_filename','consent_document_mime',
+    'electrophoresis_id','electrophoresis_filename','electrophoresis_mime',
+    'patient_created_at','report_created_at'];
+  const cell=v=>{
+    const text=v==null?'':String(v);
+    // Prevent spreadsheet formula injection when CSV is opened in Excel / Sheets.
+    const safeText=typeof v==='number'||typeof v==='boolean'?text:/^[\s]*[=+@-]/.test(text)?`'${text}`:text;
+    return `"${safeText.replace(/"/g,'""')}"`;
+  };
+  const lines=[columns.map(cell).join(',')];
+  for (const r of records) {
+    const cbc=JSON.parse(r.cbc_json),model=JSON.parse(r.prediction_json),a=byReport.get(r.id)||{};
+    const d=a.consent_document||{},e=a.electrophoresis||{};
+    const data=[r.id,r.patient_id,r.public_id,r.lab_patient_number,r.patient_name_snapshot,r.patient_age_at_test,
+      r.patient_sex_at_test,r.hematologist_carrier,r.hematologist_name,r.hematologist_notes,r.account_id,
+      r.account_name_snapshot,r.account_type_snapshot,r.screening_mode,r.authorization_id,r.client_request_id,
+      r.source_report_number,r.sample_date,...CBC_KEYS.map(k=>cbc[k]),model.is_thalassemia,model.probability,
+      model.raw_score,model.model_version,r.consent_id,r.consent_method,r.consent_version,r.consent_recorded_at,
+      d.id,d.filename,d.mime_type,e.id,e.filename,e.mime_type,r.patient_created_at,r.created_at];
+    lines.push(data.map(cell).join(','));
+  }
+  await core.audit(adminId,adminId,'patient.csv_exported',{row_count:records.length});
+  return '\uFEFF'+lines.join('\r\n')+'\r\n';
+}
+module.exports={consentCurrent,startConsent,matchPatient,finalize,listPatients,patientReports,reportDetail,adminReports,uploadEvidence,adminEvidence,adminCsv};

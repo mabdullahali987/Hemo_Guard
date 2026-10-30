@@ -120,7 +120,23 @@ CREATE TABLE IF NOT EXISTS clinical_reports (
   cbc_json TEXT NOT NULL,
   prediction_json TEXT NOT NULL,
   consent_id TEXT NOT NULL UNIQUE REFERENCES patient_consents(id),
+  hematologist_carrier TEXT CHECK(hematologist_carrier IN ('yes','no') OR hematologist_carrier IS NULL),
+  hematologist_name TEXT,
+  hematologist_notes TEXT,
   created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS clinical_attachments (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES users(id),
+  consent_intent_id TEXT NOT NULL REFERENCES consent_intents(id),
+  report_id TEXT REFERENCES clinical_reports(id),
+  kind TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  byte_length INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  uploaded_at TEXT NOT NULL,
+  UNIQUE(consent_intent_id,kind)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_clinical_client_request ON clinical_reports(account_id,client_request_id)
   WHERE client_request_id IS NOT NULL;
