@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.shah.hemo_guard"
+    namespace = "com.abdullahali.hemoguard"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -21,7 +21,7 @@ android {
 
 defaultConfig {
     // Hemo Guard application ID
-    applicationId = "com.shah.hemo_guard"
+    applicationId = "com.abdullahali.hemoguard"
 
     // Minimum Android version: Android 6.0
     minSdkVersion = flutter.minSdkVersion
@@ -41,7 +41,7 @@ defaultConfig {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-       
+
 }
 flutter {
     source = "../.."

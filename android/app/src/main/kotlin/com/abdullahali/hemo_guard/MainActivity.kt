@@ -1,4 +1,4 @@
-package com.shah.hemo_guard
+package com.abdullahali.hemoguard
 
 import android.content.res.Configuration
 import io.flutter.embedding.android.FlutterActivity
