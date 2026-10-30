@@ -37,6 +37,8 @@ class _PatientReviewDialogState extends State<PatientReviewDialog> {
     return Padding(padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: fields[key], keyboardType: keyboard,
+        style: TextStyle(color: UserGlassColors.ink, fontWeight: FontWeight.w600),
+        cursorColor: UserGlassColors.violet,
         validator: (value) {
           final text = (value ?? '').trim();
           if (required && text.length < 2) return 'Please enter the patient name';
@@ -49,14 +51,23 @@ class _PatientReviewDialogState extends State<PatientReviewDialog> {
           return null;
         },
         decoration: InputDecoration(
+          filled: true,
+          fillColor: UserGlassColors.dark
+            ? const Color(0xFF211A25) : const Color(0xFFFFFAFF),
+          labelStyle: TextStyle(color: UserGlassColors.muted),
+          floatingLabelStyle: const TextStyle(color: UserGlassColors.violet),
+          errorStyle: TextStyle(color: UserGlassColors.dark
+            ? const Color(0xFFFFAEBE) : const Color(0xFFB3264D)),
           labelText: label,
           helperText: missing ? 'Not detected — enter manually if available' : 'Detected by OCR — editable',
           helperStyle: TextStyle(color: missing
-            ? const Color(0xFFB26A00)
+            ? (UserGlassColors.dark ? const Color(0xFFFFD18A) : const Color(0xFF89520C))
             : (UserGlassColors.dark ? const Color(0xFFD9BEFF) : UserGlassColors.violet),
             fontSize: 11),
           prefixIcon: Icon(missing ? Icons.edit_note_rounded : Icons.verified_outlined,
-            color: missing ? const Color(0xFFB26A00) : UserGlassColors.violet),
+            color: missing
+              ? (UserGlassColors.dark ? const Color(0xFFFFD18A) : const Color(0xFF89520C))
+              : UserGlassColors.violet),
         ),
       ),
     );
@@ -88,7 +99,16 @@ class _PatientReviewDialogState extends State<PatientReviewDialog> {
               entry('name', 'Patient name *', required: true),
               entry('age_at_test', 'Age at this test (years)', keyboard: TextInputType.number),
               DropdownButtonFormField<String>(
-                value: sex, decoration: const InputDecoration(labelText: 'Sex'),
+                value: sex,
+                style: TextStyle(color: UserGlassColors.ink, fontWeight: FontWeight.w600),
+                dropdownColor: UserGlassColors.dark
+                  ? const Color(0xFF29212E) : const Color(0xFFFFF7FF),
+                decoration: InputDecoration(
+                  labelText: 'Sex',
+                  labelStyle: TextStyle(color: UserGlassColors.muted),
+                  filled: true,
+                  fillColor: UserGlassColors.dark
+                    ? const Color(0xFF211A25) : const Color(0xFFFFFAFF)),
                 items: const [
                   DropdownMenuItem(value: 'unknown', child: Text('Not recorded')),
                   DropdownMenuItem(value: 'male', child: Text('Male')),

@@ -13,6 +13,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import '../../../data/cbc_parser.dart';
 import '../../../data/patient_metadata_parser.dart';
 import '../../../data/hemoguard_pdf_generator.dart';
+import '../../home/widgets/user_feedback.dart';
 import '../widgets/patient_review_dialog.dart';
 import '../widgets/patient_match_dialog.dart';
 import '../../../data/thalassemia_predictor.dart';
@@ -61,7 +62,7 @@ class ScannerController extends GetxController {
       consentText.value = response['text']?.toString() ?? '';
       consentVersion.value = response['version']?.toString() ?? '';
     } catch(e) {
-      Get.snackbar('Consent information unavailable',e.toString(),snackPosition:SnackPosition.TOP);
+      UserFeedback.error('Consent information unavailable', e.toString());
     } finally { consentLoading.value=false; }
   }
 
@@ -81,7 +82,7 @@ class ScannerController extends GetxController {
       consentConfirmed.value=true;
       if(!isText.value)await initCamera();
     } catch(e) {
-      Get.snackbar('Consent not recorded',e.toString(),snackPosition:SnackPosition.TOP);
+      UserFeedback.error('Consent not recorded', e.toString());
     } finally {consentLoading.value=false;}
   }
 
@@ -198,26 +199,18 @@ class ScannerController extends GetxController {
       patientDraft=PatientMetadataParser.parse(rawText.value);
 
       if (parsed.isEmpty) {
-        Get.snackbar(
-          'Couldn\'t read the report',
-          'Try a sharper, well-lit, straight photo — or enter values manually.',
-          snackPosition: SnackPosition.TOP,
-        );
+        UserFeedback.info('Couldn\'t read the report',
+          'Try a sharper, well-lit photo or enter the values manually.');
       } else if (missingKeys.isNotEmpty) {
-        Get.snackbar(
-          'Review needed',
-          'Fill in ${missingKeys.map(_shortFor).join(", ")} to run the analysis.',
-          snackPosition: SnackPosition.TOP,
-        );
+        UserFeedback.info('Review needed',
+          'Fill in ${missingKeys.map(_shortFor).join(", ")} to analyze.');
       } else {
-        Get.snackbar('Report values detected',
-          'Review the patient information and CBC values, then tap Analyze.',
-          snackPosition:SnackPosition.TOP);
+        UserFeedback.success('Values detected',
+          'Review the CBC and patient details, then tap Analyze.');
       }
     } catch (e) {
       debugPrint('OCR error: $e');
-      Get.snackbar('Error', 'Failed to process image: $e',
-          snackPosition: SnackPosition.TOP);
+      UserFeedback.error('Could not read image', 'Failed to process image: $e');
     } finally {
       isProcessing.value = false;
     }
@@ -456,15 +449,15 @@ class ScannerController extends GetxController {
   Future<void> runPrediction() async {
     if(isAnalyzing.value)return;
     if(savedReport.value!=null) {
-      Get.snackbar('Already saved','This analysis is in patient history. Rescan for a new test.',snackPosition:SnackPosition.TOP);
+      UserFeedback.info('Already saved', 'This report is in patient history. Rescan for a new test.');
       return;
     }
     if(!consentConfirmed.value || _consentIntentId==null) {
-      Get.snackbar('Consent required','Confirm patient permission before analyzing.',snackPosition:SnackPosition.TOP);
+      UserFeedback.info('Consent required', 'Confirm patient permission before analyzing.');
       return;
     }
-    if(!isModelLoaded){Get.snackbar('Model not ready','Please try again in a moment.',snackPosition:SnackPosition.TOP);return;}
-    if(!canPredict){Get.snackbar('Missing values','Enter ${missingKeys.map(_shortFor).join(", ")} to run analysis.',snackPosition:SnackPosition.TOP);return;}
+    if(!isModelLoaded){UserFeedback.info('Model not ready', 'Please try again in a moment.');return;}
+    if(!canPredict){UserFeedback.info('Missing values', 'Enter ${missingKeys.map(_shortFor).join(", ")} to analyze.');return;}
     isAnalyzing.value=true;
     isDetected.value=false;
     result.value=null;
@@ -547,30 +540,30 @@ class ScannerController extends GetxController {
       result.value=visible ? calculated : null;
       isDetected.value=visible;
       if (!visible) {
-        Get.snackbar('Screening saved',
-          'Patient ${patientPublicId.value} • Only the superadmin can view this result.',
-          snackPosition:SnackPosition.TOP);
+        UserFeedback.success('Screening saved securely',
+          'Patient ${patientPublicId.value} • Only the superadmin can view the result.');
         return;
       }
       try {
         final pdf=await HemoGuardPdfGenerator.generate(report,patientPublicId:patientPublicId.value);
         pdfLocation.value=pdf.path;
-        Get.snackbar('Report saved','Patient ${patientPublicId.value} • PDF saved in HemoGuardReports',
-          snackPosition:SnackPosition.TOP);
+        UserFeedback.success('PDF saved successfully',
+          'Patient ${patientPublicId.value} • PDF created.', filePath: pdf.path);
       } catch(e) {
-        Get.snackbar('Report saved','Medical record saved, but PDF creation failed: $e',snackPosition:SnackPosition.TOP);
+        UserFeedback.error('Report saved, PDF failed',
+          'Your medical record was saved, but PDF creation failed: $e');
       }
     } on ApiException catch(e) {
       if(e.statusCode==403 && e.message.contains('Consent confirmation')) {
         consentConfirmed.value=false;
         _consentIntentId=null;
-        Get.snackbar('Consent expired','Confirm patient permission again before scanning.',snackPosition:SnackPosition.TOP);
+        UserFeedback.info('Consent expired', 'Confirm patient permission again before scanning.');
       } else {
-        Get.snackbar('Could not save report',e.message,snackPosition:SnackPosition.TOP);
+        UserFeedback.error('Could not save report', e.message);
       }
     } catch(e) {
       debugPrint('Patient analysis failed: $e');
-      Get.snackbar('Error','Could not finish analysis. Please try again.',snackPosition:SnackPosition.TOP);
+      UserFeedback.error('Analysis not completed', 'Please try again.');
     } finally {isAnalyzing.value=false;}
   }
 

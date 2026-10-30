@@ -6,11 +6,15 @@ import 'app/routes/app_pages.dart';
 import 'app/theme/app_theme.dart';
 import 'app/services/auth_service.dart';
 import 'app/services/system_appearance.dart';
+import 'app/modules/settings/controllers/settings_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final auth = Get.put(AuthService(), permanent: true);
   await auth.restore();
+  // Settings is displayed inside the persistent swipeable user workspace.
+  // Keep its preference controller alive across GetX route changes (e.g. Scan).
+  Get.put<SettingsController>(SettingsController(), permanent: true);
   // Read Android system appearance once before showing Login/Superadmin.
   await HemoGuardSystemAppearance.refresh();
   runApp(

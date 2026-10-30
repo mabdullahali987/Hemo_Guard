@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hemo_guard/app/data/hemoguard_pdf_generator.dart';
 import 'package:hemo_guard/app/modules/home/widgets/user_glass.dart';
+import 'package:hemo_guard/app/modules/home/widgets/user_feedback.dart';
 import 'package:hemo_guard/app/services/auth_service.dart';
 
 /// Same account-isolated patient API, with a user-scoped liquid-glass UI.
@@ -246,11 +247,12 @@ class _PatientHistoryViewState extends State<PatientHistoryView> {
                   try {
                     final f = await HemoGuardPdfGenerator.generate(report,
                       patientPublicId: widget.patient['public_id']?.toString());
-                    if (sheetContext.mounted) ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      SnackBar(content: Text('PDF saved to ${f.path}')));
+                    if (sheetContext.mounted) UserFeedback.success(
+                      'PDF saved successfully', 'Your screening PDF is ready.',
+                      context: sheetContext, filePath: f.path);
                   } catch (e) {
-                    if (sheetContext.mounted) ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      SnackBar(content: Text('PDF failed: $e')));
+                    if (sheetContext.mounted) UserFeedback.error(
+                      'PDF could not be saved', '$e', context: sheetContext);
                   }
                 },
               )),

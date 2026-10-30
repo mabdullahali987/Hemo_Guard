@@ -351,7 +351,7 @@ class _FieldCell extends GetView<ScannerController> {
           Row(
             children: [
               Text(param.short,
-                  style: const TextStyle(
+                  style: TextStyle(color: UserGlassColors.ink,
                       fontSize: 14, fontWeight: FontWeight.w700)),
               const Spacer(),
               Text(param.unit,
@@ -396,19 +396,32 @@ class _ValueField extends GetView<ScannerController> {
             const TextInputType.numberWithOptions(decimal: true, signed: false),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        style: TextStyle(color: UserGlassColors.ink,
+          fontSize: 17, fontWeight: FontWeight.w700),
+        cursorColor: UserGlassColors.violet,
         decoration: InputDecoration(
+          filled: true,
+          fillColor: UserGlassColors.dark
+              ? const Color(0xFF211A25) : const Color(0xFFFFFAFF),
+          hintStyle: TextStyle(color: UserGlassColors.hint,
+              fontSize: 17, fontWeight: FontWeight.w700),
           isDense: true,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           hintText: '—',
-          enabledBorder: missing
-              ? OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                      const BorderSide(color: AppColors.warn, width: 1.2),
-                )
-              : null,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: missing
+                ? (UserGlassColors.dark ? const Color(0xFFFFD18A) : const Color(0xFFAF6B18))
+                : UserGlassColors.violet.withOpacity(UserGlassColors.dark ? .50 : .25),
+              width: missing ? 1.3 : 1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: UserGlassColors.violet, width: 1.7),
+          ),
         ),
         onChanged: (t) => controller.setValue(param.key, t),
       );

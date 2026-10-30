@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../home/views/home_view.dart';
 import '../../home/widgets/user_glass.dart';
 import '../../patients/views/patients_view.dart';
-import '../../settings/controllers/settings_controller.dart';
 import '../../settings/views/settings_view.dart';
 
 /// One persistent, swipeable workspace: the page motion and glass dock are
@@ -22,7 +21,6 @@ class _UserWorkspaceViewState extends State<UserWorkspaceView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   final GlobalKey<PatientsViewState> _patientsKey = GlobalKey<PatientsViewState>();
-  bool _createdSettingsController = false;
   late int _previousTab;
 
   @override
@@ -35,12 +33,6 @@ class _UserWorkspaceViewState extends State<UserWorkspaceView>
     );
     _previousTab = _tabs.index;
     _tabs.addListener(_onTabChanged);
-    // The existing /settings binding is only invoked on that named route.
-    // Provide its unchanged controller when Settings is hosted in this shell.
-    if (!Get.isRegistered<SettingsController>()) {
-      Get.put(SettingsController());
-      _createdSettingsController = true;
-    }
   }
 
   void _onTabChanged() {
@@ -55,9 +47,6 @@ class _UserWorkspaceViewState extends State<UserWorkspaceView>
   void dispose() {
     _tabs.removeListener(_onTabChanged);
     _tabs.dispose();
-    if (_createdSettingsController && Get.isRegistered<SettingsController>()) {
-      Get.delete<SettingsController>();
-    }
     super.dispose();
   }
 
