@@ -166,7 +166,7 @@ class _PatientReviewDialogState extends State<PatientReviewDialog> {
           Flexible(child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Form(key: form, child: Column(children: [
-              entry('name', 'Patient name *', required: true),
+              entry('name', 'Patient name *'),
               entry('age_at_test', 'Patient age * (years)', keyboard: TextInputType.number),
               DropdownButtonFormField<String>(
                 value: sex,
